@@ -1,155 +1,4 @@
 import 'package:flutter/material.dart';
-import 'qrcode.dart';
-import 'maintenance.dart';
-
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
-  bool _isMenuOpen = false;
-
-  final List<Widget> _pages = [
-    const HomeContent(),
-    const QRScanPage(),
-    const MaintenancePage(),
-  ];
-
-  void toggleMenu() {
-    setState(() {
-      _isMenuOpen = !_isMenuOpen;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Main UI
-          Scaffold(
-            appBar: AppBar(
-              backgroundColor: Color(0xFF6A48D7),
-              leading: IconButton(
-                onPressed: toggleMenu,
-                icon: const Icon(Icons.menu, color: Colors.white),
-              ),
-              actions: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications_none, color: Colors.white),
-                ),
-              ],
-            ),
-            body: _pages[_currentIndex],
-            bottomNavigationBar: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              selectedItemColor: const Color(0xFF6A48D7),
-              onTap: (index) => setState(() => _currentIndex = index),
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF6A48D7),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.qr_code, color: Colors.white, size: 28),
-                  ),
-                  label: 'QR Code',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.schedule),
-                  label: 'Schedules',
-                ),
-              ],
-            ),
-          ),
-
-          // Sidebar
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            top: 0,
-            bottom: 0,
-            left: _isMenuOpen ? 0 : -250,
-            child: CustomSidebarMenu(onClose: toggleMenu),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class CustomSidebarMenu extends StatelessWidget {
-  final VoidCallback onClose;
-
-  const CustomSidebarMenu({super.key, required this.onClose});
-
-  @override
-Widget build(BuildContext context) {
-  return Material(
-    elevation: 8,
-    child: Container(
-      width: 250,
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 24, 21, 37),
-        borderRadius: const BorderRadius.only(
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: onClose,
-            color: Colors.white,
-          ),
-          const SizedBox(height: 20),
-          _menuButton(Icons.build, "Maintenance Schedule"),
-          const SizedBox(height: 10),
-          const Divider(
-            color: Colors.white,
-            thickness: 1,
-            indent: 10,
-            endIndent: 10,
-          ),
-          const SizedBox(height: 10),
-          _menuButton(Icons.settings, "Settings"),
-          const SizedBox(height: 10),
-          _menuButton(Icons.help_outline, "Placeholder 1"),
-          const SizedBox(height: 10),
-          _menuButton(Icons.help_outline, "Placeholder 2"),
-        ],
-      ),
-    ),
-  );
-}
-
-  Widget _menuButton(IconData icon, String title) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(255, 75, 66, 89),
-        minimumSize: const Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      icon: Icon(icon, color: Colors.white),
-      label: Text(title, style: const TextStyle(color: Colors.white)),
-      onPressed: () {
-        // Implement feature here
-      },
-    );
-  }
-}
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -159,7 +8,9 @@ class HomeContent extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: NetworkImage('https://img.freepik.com/free-vector/modern-colorful-poster-shape-color-background_361591-4374.jpg?t=st=1745552015~exp=1745555615~hmac=ee9e7fdc1c2d543db870597796bfa66fa6b2e1ebe9796d1d439166918f947440&w=360'),
+          image: NetworkImage(
+            'https://img.freepik.com/free-vector/modern-colorful-poster-shape-color-background_361591-4374.jpg?t=st=1745552015~exp=1745555615~hmac=ee9e7fdc1c2d543db870597796bfa66fa6b2e1ebe9796d1d439166918f947440&w=360',
+          ),
           fit: BoxFit.cover,
         ),
       ),
@@ -168,7 +19,7 @@ class HomeContent extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.9,
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 255, 255, 0.95), // almost opaque white
+            color: const Color.fromRGBO(255, 255, 255, 0.95),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -200,7 +51,6 @@ class HomeContent extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Circular progress ring
                         SizedBox(
                           height: 95,
                           width: 95,
@@ -211,7 +61,6 @@ class HomeContent extends StatelessWidget {
                             color: const Color(0xFF6A48D7),
                           ),
                         ),
-                        // Inner white circle with shadow
                         Container(
                           height: 95,
                           width: 95,
@@ -227,7 +76,6 @@ class HomeContent extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Centered text
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
@@ -268,7 +116,7 @@ class HomeContent extends StatelessWidget {
                       style: TextStyle(color: Colors.green, fontSize: 16),
                     ),
                   ],
-                )
+                ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -289,8 +137,9 @@ class HomeContent extends StatelessWidget {
                           'Total: 125\nOnline: 95\nOffline: 30\n\nDetails:\nStudent_Laptop1\nStudent_Laptop2\n...'),
                       actions: [
                         TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close')),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close'),
+                        ),
                       ],
                     ),
                   );
@@ -337,3 +186,62 @@ class HomeContent extends StatelessWidget {
   }
 }
 
+class CustomSidebarMenu extends StatelessWidget {
+  final VoidCallback onClose;
+
+  const CustomSidebarMenu({super.key, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 8,
+      child: Container(
+        width: 250,
+        decoration: const BoxDecoration(
+          color: Color.fromARGB(255, 24, 21, 37),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: onClose,
+              color: Colors.white,
+            ),
+            const SizedBox(height: 20),
+            _menuButton(Icons.build, "Maintenance Schedule"),
+            const SizedBox(height: 10),
+            const Divider(
+              color: Colors.white,
+              thickness: 1,
+              indent: 10,
+              endIndent: 10,
+            ),
+            const SizedBox(height: 10),
+            _menuButton(Icons.settings, "Settings"),
+            const SizedBox(height: 10),
+            _menuButton(Icons.help_outline, "Placeholder 1"),
+            const SizedBox(height: 10),
+            _menuButton(Icons.help_outline, "Placeholder 2"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuButton(IconData icon, String title) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color.fromARGB(255, 75, 66, 89),
+        minimumSize: const Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      icon: Icon(icon, color: Colors.white),
+      label: Text(title, style: const TextStyle(color: Colors.white)),
+      onPressed: () {
+        // Implement feature here
+      },
+    );
+  }
+}
