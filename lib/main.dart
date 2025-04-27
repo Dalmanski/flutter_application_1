@@ -3,21 +3,21 @@ import 'home.dart';
 import 'qrcode.dart';
 import 'maintenance.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();  // initialize Firebase
+  await Firebase.initializeApp(); // initialize Firebase
   runApp(const SchoolComputerTrackingApp());
 }
-
 
 class SchoolComputerTrackingApp extends StatelessWidget {
   const SchoolComputerTrackingApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: const MainScaffold(),
-      );
+    debugShowCheckedModeBanner: false,
+    home: const MainScaffold(),
+  );
 }
 
 class MainScaffold extends StatefulWidget {
@@ -56,7 +56,10 @@ class _MainScaffoldState extends State<MainScaffold> {
               actions: [
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.notifications_none, color: Colors.white),
+                  icon: const Icon(
+                    Icons.notifications_none,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -78,7 +81,11 @@ class _MainScaffoldState extends State<MainScaffold> {
                       color: Color(0xFF6A48D7),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.qr_code, color: Colors.white, size: 28),
+                    child: const Icon(
+                      Icons.qr_code,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                   ),
                   label: 'QR Code',
                 ),

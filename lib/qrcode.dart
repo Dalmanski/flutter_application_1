@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:intl/intl.dart'; // For AM/PM formatting
 
 class QRScanPage extends StatefulWidget {
@@ -41,35 +39,51 @@ class _QRScanPageState extends State<QRScanPage> {
 
   Future<void> fetchPCData(String urlString) async {
     try {
-      final url = Uri.parse(urlString);
-      final response = await http.get(
-        url,
-        headers: {
-          'X-Access-Key': '2a\$10\$E4XMMTiBE05elo4yFMrmKeSjPeQ4fbIvF2AoWA8vhUfvuPmmgAUxK',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final record = data['record'];
-
-        if (record != null && record is Map<String, dynamic>) {
-          setState(() {
-            pcData = record;
-          });
-          await checkPCInFirestore(record['comlab'], record['pc']);
-        } else {
-          _showInvalidQRDialog();
-        }
-      } else {
-        _showInvalidQRDialog();
+      // 🔥 Check if it contains the correct domain
+      if (!urlString.contains('comlab.com')) {
+        _showInvalidQRDialog("Missing comlab.com");
+        return;
       }
-    } catch (_) {
-      _showInvalidQRDialog();
+
+      // 🔥 Check if it has both comlab= and pc=
+      if (!urlString.contains('comlab=') || !urlString.contains('pc=')) {
+        _showInvalidQRDialog(urlString);
+        return;
+      }
+
+      final comlabStart = urlString.indexOf('comlab=') + 7;
+      final pcStart = urlString.indexOf('pc=');
+
+      String comlab = '';
+      String pc = '';
+
+      if (comlabStart > 6 && pcStart > 0) {
+        comlab = urlString.substring(
+          comlabStart,
+          urlString.indexOf('&', comlabStart),
+        );
+        pc = urlString.substring(pcStart + 3);
+
+        // 🛠️ Decode %20 into real spaces
+        comlab = Uri.decodeComponent(comlab);
+        pc = Uri.decodeComponent(pc);
+      }
+
+      if (comlab.isNotEmpty && pc.isNotEmpty) {
+        setState(() {
+          pcData = {'comlab': comlab, 'pc': pc};
+        });
+
+        await checkPCInFirestore(comlab, pc);
+      } else {
+        _showInvalidQRDialog("Empty comlab or pc value");
+      }
+    } catch (e) {
+      _showInvalidQRDialog("Exception: $e");
     } finally {
       if (mounted) {
         setState(() {
-          isLoading = false; // Stop loading
+          isLoading = false;
         });
       }
     }
@@ -77,12 +91,13 @@ class _QRScanPageState extends State<QRScanPage> {
 
   Future<void> checkPCInFirestore(String comlabName, String pcName) async {
     try {
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('comlab rooms')
-          .doc(comlabName)
-          .collection('PCs')
-          .doc(pcName)
-          .get();
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('comlab rooms')
+              .doc(comlabName)
+              .collection('PCs')
+              .doc(pcName)
+              .get();
 
       if (docSnapshot.exists) {
         final data = docSnapshot.data()!;
@@ -102,23 +117,28 @@ class _QRScanPageState extends State<QRScanPage> {
     }
   }
 
-  void _showInvalidQRDialog() {
+  void _showInvalidQRDialog([String? error]) {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Invalid QR Code"),
-        content: const Text("Not a correct QR code, try again."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              controller?.resumeCamera();
-            },
-            child: const Text("OK"),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Invalid QR Code"),
+            content: Text(
+              error != null
+                  ? "Error: $error"
+                  : "Not a correct QR code, try again.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  controller?.resumeCamera();
+                },
+                child: const Text("OK"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -126,19 +146,20 @@ class _QRScanPageState extends State<QRScanPage> {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Unknown PC"),
-        content: Text("PC Name: $pcName\nComlab: $comlabName"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              controller?.resumeCamera();
-            },
-            child: const Text("OK"),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Unknown PC"),
+            content: Text("PC Name: $pcName\nComlab: $comlabName"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  controller?.resumeCamera();
+                },
+                child: const Text("OK"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -168,7 +189,9 @@ class _QRScanPageState extends State<QRScanPage> {
                     padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
                       color: Color(0xFF7754CC),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -176,7 +199,11 @@ class _QRScanPageState extends State<QRScanPage> {
                         const Icon(Icons.info_outline, color: Colors.white),
                         Text(
                           pcData?["lab"] ?? 'Laboratory',
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         GestureDetector(
                           onTap: () {
@@ -198,7 +225,10 @@ class _QRScanPageState extends State<QRScanPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Computer:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Computer:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         pcData?["pc"] ?? 'Unknown PC',
@@ -210,12 +240,18 @@ class _QRScanPageState extends State<QRScanPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Status:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Status:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         status.toUpperCase(),
                         style: TextStyle(
-                          color: status == "maintenance" ? Colors.red : Colors.green,
+                          color:
+                              status == "maintenance"
+                                  ? Colors.red
+                                  : Colors.green,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -231,7 +267,10 @@ class _QRScanPageState extends State<QRScanPage> {
                       ),
                       child: const Text(
                         'Sorry for the inconvenience. Please use another computer.',
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     )
@@ -240,7 +279,10 @@ class _QRScanPageState extends State<QRScanPage> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'REPORT AN ISSUE:',
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -270,7 +312,9 @@ class _QRScanPageState extends State<QRScanPage> {
                           if (issueText.isEmpty) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please describe the issue.')),
+                                const SnackBar(
+                                  content: Text('Please describe the issue.'),
+                                ),
                               );
                             }
                             return;
@@ -301,7 +345,11 @@ class _QRScanPageState extends State<QRScanPage> {
     );
   }
 
-  Future<void> updatePCStatusAndLogTicket(String comlabName, String pcName, String issueDescription) async {
+  Future<void> updatePCStatusAndLogTicket(
+    String comlabName,
+    String pcName,
+    String issueDescription,
+  ) async {
     final now = DateTime.now();
     final timeFormatted = DateFormat('hh:mm a').format(now);
     final dateFormatted = DateFormat('MMMM d, yyyy').format(DateTime.now());
@@ -313,11 +361,11 @@ class _QRScanPageState extends State<QRScanPage> {
           .collection('PCs')
           .doc(pcName)
           .update({
-        'status': 'maintenance',
-        'last_issue': issueDescription,
-        'time_reported': timeFormatted,
-        'date_reported': dateFormatted,
-      });
+            'status': 'maintenance',
+            'last_issue': issueDescription,
+            'time_reported': timeFormatted,
+            'date_reported': dateFormatted,
+          });
     } catch (e) {
       // Handle error if needed
     }
@@ -344,9 +392,7 @@ class _QRScanPageState extends State<QRScanPage> {
             Container(
               color: Colors.black54,
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
+                child: CircularProgressIndicator(color: Colors.white),
               ),
             ),
         ],

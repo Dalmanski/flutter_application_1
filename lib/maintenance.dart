@@ -19,7 +19,9 @@ class _MaintenancePageState extends State<MaintenancePage> {
   }
 
   Future<void> fetchPCs() async {
-    final comlabCollection = FirebaseFirestore.instance.collection('comlab rooms');
+    final comlabCollection = FirebaseFirestore.instance.collection(
+      'comlab rooms',
+    );
     final comlabSnapshot = await comlabCollection.get();
 
     if (!mounted) return;
@@ -64,77 +66,87 @@ class _MaintenancePageState extends State<MaintenancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(), // 🌀 Loading indicator
-            )
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDEAFF),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.computer, color: Colors.black87),
-                      SizedBox(width: 10),
-                      Text(
-                        'Maintenance Schedule',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+      body:
+          isLoading
+              ? const Center(
+                child: CircularProgressIndicator(), // 🌀 Loading indicator
+              )
+              : ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                const SizedBox(height: 24),
-
-                const Text('On Maintenance', style: TextStyle(fontSize: 16, color: Colors.red)),
-                const Divider(color: Colors.redAccent),
-
-                if (maintenanceMap.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Text(
-                        'No PCs currently under maintenance.',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDEAFF),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  )
-                else
-                  ...maintenanceMap.entries.map((entry) {
-                    final comlab = entry.key;
-                    final pcs = entry.value;
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
-                        Center(
-                          child: Text(
-                            comlab.toUpperCase(),
-                            style: const TextStyle(fontSize: 15),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.computer, color: Colors.black87),
+                        SizedBox(width: 10),
+                        Text(
+                          'Maintenance Schedule',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Divider(),
-
-                        if (pcs.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              'No PCs under maintenance.',
-                              style: TextStyle(color: Colors.green),
-                            ),
-                          )
-                        else
-                          ...pcs.map(buildMaintenanceCard),
                       ],
-                    );
-                  }),
-              ],
-            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  const Text(
+                    'On Maintenance',
+                    style: TextStyle(fontSize: 16, color: Colors.red),
+                  ),
+                  const Divider(color: Colors.redAccent),
+
+                  if (maintenanceMap.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          'No PCs currently under maintenance.',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                    )
+                  else
+                    ...maintenanceMap.entries.map((entry) {
+                      final comlab = entry.key;
+                      final pcs = entry.value;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
+                          Center(
+                            child: Text(
+                              comlab.toUpperCase(),
+                              style: const TextStyle(fontSize: 15),
+                            ),
+                          ),
+                          const Divider(),
+
+                          if (pcs.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                'No PCs under maintenance.',
+                                style: TextStyle(color: Colors.green),
+                              ),
+                            )
+                          else
+                            ...pcs.map(buildMaintenanceCard),
+                        ],
+                      );
+                    }),
+                ],
+              ),
     );
   }
 
@@ -154,7 +166,11 @@ class _MaintenancePageState extends State<MaintenancePage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -167,7 +183,10 @@ class _MaintenancePageState extends State<MaintenancePage> {
                 Expanded(
                   child: Text(
                     '${data['pc']} Maintenance',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
@@ -197,7 +216,10 @@ class _MaintenancePageState extends State<MaintenancePage> {
                     ),
                     if (data['issue'] != null) ...[
                       const SizedBox(height: 10),
-                      const Text('User Issue:', style: TextStyle(color: Colors.red)),
+                      const Text(
+                        'User Issue:',
+                        style: TextStyle(color: Colors.red),
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         '"${data['issue']}"',

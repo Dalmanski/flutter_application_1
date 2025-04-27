@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart'; // 🛑 Add qr_flutter to pubspec.yaml
 
 class CreatePCPage extends StatefulWidget {
   const CreatePCPage({super.key});
@@ -15,6 +16,7 @@ class _CreatePCPageState extends State<CreatePCPage> {
   final _formKey = GlobalKey<FormState>();
 
   bool isLoading = false;
+  String? generatedLink; // 🌟 To store the generated link after submit
 
   @override
   void dispose() {
@@ -28,6 +30,7 @@ class _CreatePCPageState extends State<CreatePCPage> {
 
     setState(() {
       isLoading = true;
+      generatedLink = null;
     });
 
     try {
@@ -36,33 +39,44 @@ class _CreatePCPageState extends State<CreatePCPage> {
       String todayDate = DateFormat('MMMM d, yyyy').format(DateTime.now());
       String todayTime = DateFormat('hh:mm a').format(DateTime.now());
 
-      final comlabRef = FirebaseFirestore.instance.collection('comlab rooms').doc(comlabName);
+      final comlabRef = FirebaseFirestore.instance
+          .collection('comlab rooms')
+          .doc(comlabName);
 
-      // 🔥 Ensure comlab document exists (even with dummy field if needed)
       await comlabRef.set({
-        'created_at': FieldValue.serverTimestamp(), // ✅ or any useful field
-      }, SetOptions(merge: true)); // Merge so we don't overwrite existing fields
+        'created_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       final pcRef = comlabRef.collection('PCs').doc(pcName);
 
+      // 🔥 Encode names before making the link
+      String encodedComlab = Uri.encodeComponent(comlabName);
+      String encodedPC = Uri.encodeComponent(pcName);
+
+      String link = "https://comlab.com/pc?comlab=$encodedComlab&pc=$encodedPC";
+
+      // 🌟 Save all PC info including the link
       await pcRef.set({
         'date_reported': todayDate,
         'status': 'working',
         'time_reported': todayTime,
         'comlab': comlabName,
+        'generated_link': link,
       });
 
       if (!mounted) return;
+      setState(() {
+        generatedLink = link;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('New PC created successfully!')),
       );
-
-      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create PC: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to create PC: $e')));
     } finally {
       if (mounted) {
         setState(() {
@@ -79,14 +93,9 @@ class _CreatePCPageState extends State<CreatePCPage> {
         backgroundColor: const Color(0xFF6A48D7),
         title: const Text(
           'Create New PC',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         padding: const EdgeInsets.all(16),
@@ -149,13 +158,30 @@ class _CreatePCPageState extends State<CreatePCPage> {
                   minimumSize: const Size.fromHeight(50),
                 ),
                 onPressed: isLoading ? null : _submitData,
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Submit',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                child:
+                    isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
               ),
+              const SizedBox(height: 30),
+              if (generatedLink != null) ...[
+                const Text(
+                  'Generated QR Code:',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: QrImageView(
+                    data: generatedLink!,
+                    version: QrVersions.auto,
+                    size: 200.0,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
