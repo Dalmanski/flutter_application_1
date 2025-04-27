@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MaintenancePage extends StatefulWidget {
   const MaintenancePage({super.key});
@@ -8,76 +9,137 @@ class MaintenancePage extends StatefulWidget {
 }
 
 class _MaintenancePageState extends State<MaintenancePage> {
-  final List<Map<String, dynamic>> priorityList = [
-    {
-      'pc': 'PC 1',
-      'isExpanded': false,
-      'status': 'working',
-      'date': '2025-05-01',
-      'time': '10:00 AM',
-      'isUrgent': true,
-    },
-    {
-      'pc': 'PC 3',
-      'isExpanded': false,
-      'status': 'maintenance',
-      'date': '2025-05-02',
-      'time': '11:11 AM',
-      'isUrgent': true,
-      'issue': 'Missing peripherals. I can’t use the computer without a mouse. Where is the mouse. The PC does not have a keyboard as well.',
-    },
-  ];
+  Map<String, List<Map<String, dynamic>>> maintenanceMap = {};
+  bool isLoading = true; // 🛠 Add loading state
 
-  final List<Map<String, dynamic>> nonUrgentList = [
-    {
-      'pc': 'PC 1',
-      'isExpanded': false,
-      'status': 'working',
-      'date': '2025-05-01',
-      'time': '10:00 AM',
-      'isUrgent': false,
+  @override
+  void initState() {
+    super.initState();
+    fetchPCs();
+  }
+
+  Future<void> fetchPCs() async {
+    final comlabCollection = FirebaseFirestore.instance.collection('comlab rooms');
+    final comlabSnapshot = await comlabCollection.get();
+
+    if (!mounted) return;
+
+    Map<String, List<Map<String, dynamic>>> tempMap = {};
+
+    for (var comlabDoc in comlabSnapshot.docs) {
+      final comlabName = comlabDoc.id;
+      final pcsCollection = comlabDoc.reference.collection('PCs');
+      final pcsSnapshot = await pcsCollection.get();
+
+      List<Map<String, dynamic>> pcsList = [];
+
+      for (var pcDoc in pcsSnapshot.docs) {
+        final data = pcDoc.data();
+        final status = data['status'] ?? 'unknown';
+
+        if (status == 'maintenance') {
+          final pcData = {
+            'pc': pcDoc.id,
+            'isExpanded': false,
+            'status': status,
+            'date': data['date_reported'] ?? '',
+            'time': data['time_reported'] ?? '',
+            'issue': data['last_issue'],
+          };
+          pcsList.add(pcData);
+        }
+      }
+
+      tempMap[comlabName] = pcsList;
     }
-  ];
+
+    if (mounted) {
+      setState(() {
+        maintenanceMap = tempMap;
+        isLoading = false; // ✅ Loading complete
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDEAFF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.computer, color: Colors.black87),
-                SizedBox(width: 10),
-                Text(
-                  'Maintenance Schedule',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(), // 🌀 Loading indicator
+            )
+          : ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEAFF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.computer, color: Colors.black87),
+                      SizedBox(width: 10),
+                      Text(
+                        'Maintenance Schedule',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 24),
+
+                const Text('On Maintenance', style: TextStyle(fontSize: 16, color: Colors.red)),
+                const Divider(color: Colors.redAccent),
+
+                if (maintenanceMap.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        'No PCs currently under maintenance.',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  )
+                else
+                  ...maintenanceMap.entries.map((entry) {
+                    final comlab = entry.key;
+                    final pcs = entry.value;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        Center(
+                          child: Text(
+                            comlab.toUpperCase(),
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                        ),
+                        const Divider(),
+
+                        if (pcs.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'No PCs under maintenance.',
+                              style: TextStyle(color: Colors.green),
+                            ),
+                          )
+                        else
+                          ...pcs.map(buildMaintenanceCard),
+                      ],
+                    );
+                  }),
               ],
             ),
-          ),
-          const SizedBox(height: 24),
-          const Text('Priority', style: TextStyle(fontSize: 16, color: Colors.red)),
-          const Divider(color: Colors.redAccent),
-          ...priorityList.map(buildMaintenanceCard),
-          const SizedBox(height: 20),
-          const Text('Non - Urgent', style: TextStyle(fontSize: 16)),
-          const Divider(),
-          ...nonUrgentList.map(buildMaintenanceCard),
-        ],
-      ),
     );
   }
 
   Widget buildMaintenanceCard(Map<String, dynamic> data) {
     final isExpanded = data['isExpanded'] as bool;
-    final isUrgent = data['isUrgent'] as bool;
 
     return GestureDetector(
       onTap: () {
@@ -100,7 +162,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
           children: [
             Row(
               children: [
-                Icon(Icons.circle, size: 12, color: isUrgent ? Colors.red : Colors.orange),
+                const Icon(Icons.build_circle, size: 16, color: Colors.orange),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -127,19 +189,13 @@ class _MaintenancePageState extends State<MaintenancePage> {
                     Row(
                       children: [
                         const Text('Status: '),
-                        if (data['status'] == 'working')
-                          Text(
-                            data['status'],
-                            style: const TextStyle(color: Colors.green),
-                          )
-                        else
-                          Text(
-                            data['status'],
-                            style: const TextStyle(color: Colors.orange),
-                          ),
+                        Text(
+                          data['status'],
+                          style: const TextStyle(color: Colors.orange),
+                        ),
                       ],
                     ),
-                    if (data.containsKey('issue')) ...[
+                    if (data['issue'] != null) ...[
                       const SizedBox(height: 10),
                       const Text('User Issue:', style: TextStyle(color: Colors.red)),
                       const SizedBox(height: 6),
@@ -150,7 +206,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
                     ],
                   ],
                 ),
-              )
+              ),
             ],
           ],
         ),

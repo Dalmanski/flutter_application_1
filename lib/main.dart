@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'home.dart';
 import 'qrcode.dart';
 import 'maintenance.dart';
+import 'package:firebase_core/firebase_core.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();  // initialize Firebase
+  runApp(const SchoolComputerTrackingApp());
+}
 
-void main() => runApp(const SchoolComputerTrackingApp());
 
 class SchoolComputerTrackingApp extends StatelessWidget {
   const SchoolComputerTrackingApp({super.key});
