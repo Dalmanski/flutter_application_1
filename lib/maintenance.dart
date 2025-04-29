@@ -89,14 +89,11 @@ class _MaintenancePageState extends State<MaintenancePage> {
                   children: [
                     const Icon(Icons.info, color: Colors.white),
                     const SizedBox(width: 8),
-                    Center(
-                      child: Text(
-                        pcName.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      labName.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -278,13 +275,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: Colors.black26, width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -48,7 +48,20 @@ class _MainScaffoldState extends State<MainScaffold> {
         children: [
           Scaffold(
             appBar: AppBar(
-              backgroundColor: const Color(0xFF6A48D7),
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF6A48D7), // Purple
+                      Color(0xFF8E2DE2), // Vibrant purple
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
               leading: IconButton(
                 onPressed: toggleMenu,
                 icon: const Icon(Icons.menu, color: Colors.white),
@@ -69,28 +82,53 @@ class _MainScaffoldState extends State<MainScaffold> {
               selectedItemColor: const Color(0xFF6A48D7),
               onTap: (index) => setState(() => _currentIndex = index),
               items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
+                BottomNavigationBarItem(
+                  icon: Icon(
+                    Icons.home,
+                    size: _currentIndex == 0 ? 30 : 24,
+                    color:
+                        _currentIndex == 0
+                            ? const Color(0xFF6A48D7)
+                            : Colors.grey,
+                  ),
                   label: 'Home',
                 ),
                 BottomNavigationBarItem(
-                  icon: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF6A48D7),
+                  icon: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: _currentIndex == 1 ? 56 : 48,
+                    height: _currentIndex == 1 ? 56 : 48,
+                    decoration: BoxDecoration(
+                      color:
+                          _currentIndex == 1
+                              ? const Color(0xFF6A48D7)
+                              : Colors.transparent,
                       shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF6A48D7),
+                        width: 2,
+                      ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.qr_code,
-                      color: Colors.white,
-                      size: 28,
+                      color:
+                          _currentIndex == 1
+                              ? Colors.white
+                              : const Color(0xFF6A48D7),
+                      size: _currentIndex == 1 ? 30 : 24,
                     ),
                   ),
                   label: 'QR Code',
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.schedule),
+                BottomNavigationBarItem(
+                  icon: Icon(
+                    Icons.schedule,
+                    size: _currentIndex == 2 ? 30 : 24,
+                    color:
+                        _currentIndex == 2
+                            ? const Color(0xFF6A48D7)
+                            : Colors.grey,
+                  ),
                   label: 'Schedules',
                 ),
               ],

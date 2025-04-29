@@ -119,10 +119,10 @@ class AvailableComputersPage extends StatelessWidget {
               final isMaintenance = status.toLowerCase() == 'maintenance';
 
               return Card(
-                elevation: 4,
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Colors.black26, width: 1),
                 ),
                 child: ExpansionTile(
                   tilePadding: const EdgeInsets.symmetric(

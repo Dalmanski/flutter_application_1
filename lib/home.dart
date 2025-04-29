@@ -32,6 +32,9 @@ class _HomeContentState extends State<HomeContent> {
 
       for (var roomDoc in roomsSnapshot.docs) {
         final roomName = roomDoc.id;
+        final roomData = roomDoc.data() as Map<String, dynamic>;
+        final imageUrl = roomData['image'] ?? '';
+
         final pcsSnapshot =
             await FirebaseFirestore.instance
                 .collection('comlab rooms')
@@ -49,7 +52,11 @@ class _HomeContentState extends State<HomeContent> {
 
         double occupied = totalPCs == 0 ? 0 : workingPCs / totalPCs;
 
-        fetchedComlabs.add({'name': roomName, 'occupied': occupied});
+        fetchedComlabs.add({
+          'name': roomName,
+          'occupied': occupied,
+          'image': imageUrl,
+        });
       }
 
       setState(() {
@@ -124,10 +131,19 @@ class _HomeContentState extends State<HomeContent> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: Image.network(
-                                    'http://rshsxii.edu.ph/wp-content/uploads/2013/10/wpid-IMG_20131008_133012.jpg',
+                                    comlabs[index]['image'] ?? '',
                                     width: double.infinity,
                                     height: 180,
                                     fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          size: 60,
+                                          color: Colors.grey,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                                 Positioned(
