@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'create_pc.dart';
-import 'available_computers.dart';
+import 'register_pc.dart';
+import 'available_pc.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -251,22 +251,6 @@ class _HomeContentState extends State<HomeContent> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: const Color(0xFF6A48D7),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          minimumSize: const Size.fromHeight(50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: () {
-                          DefaultTabController.of(context).animateTo(2);
-                        },
-                        child: const Text('Room Schedule'),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
                           backgroundColor: Colors.red.shade400,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           minimumSize: const Size.fromHeight(50),
@@ -322,11 +306,7 @@ class CustomSidebarMenu extends StatelessWidget {
             const SizedBox(height: 10),
             _menuButton(Icons.settings, "Settings", () {}),
             const SizedBox(height: 10),
-            _menuButton(Icons.help_outline, "Placeholder 1", () {}),
-            const SizedBox(height: 10),
-            _menuButton(Icons.help_outline, "Placeholder 2", () {}),
-            const SizedBox(height: 10),
-            _menuButton(Icons.add, "Create New PC", () {
+            _menuButton(Icons.add, "Register New PC", () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const CreatePCPage()),

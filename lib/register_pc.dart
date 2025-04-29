@@ -62,6 +62,7 @@ class _CreatePCPageState extends State<CreatePCPage> {
         'time_reported': todayTime,
         'comlab': comlabName,
         'generated_link': link,
+        'last_issue': "",
       });
 
       if (!mounted) return;
