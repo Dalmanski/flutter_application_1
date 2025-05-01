@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'register_pc.dart';
 import 'available_pc.dart';
 
 class HomeContent extends StatefulWidget {
@@ -285,65 +284,6 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                 ),
       ),
-    );
-  }
-}
-
-class CustomSidebarMenu extends StatelessWidget {
-  final VoidCallback onClose;
-
-  const CustomSidebarMenu({super.key, required this.onClose});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      elevation: 8,
-      child: Container(
-        width: 250,
-        decoration: const BoxDecoration(color: Color.fromARGB(255, 24, 21, 37)),
-        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: onClose,
-              color: Colors.white,
-            ),
-            const SizedBox(height: 20),
-            _menuButton(Icons.build, "Maintenance Schedule", () {}),
-            const SizedBox(height: 10),
-            const Divider(
-              color: Colors.white,
-              thickness: 1,
-              indent: 10,
-              endIndent: 10,
-            ),
-            const SizedBox(height: 10),
-            _menuButton(Icons.settings, "Settings", () {}),
-            const SizedBox(height: 10),
-            _menuButton(Icons.add, "Register New PC", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CreatePCPage()),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _menuButton(IconData icon, String title, VoidCallback onPressed) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(255, 75, 66, 89),
-        minimumSize: const Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      icon: Icon(icon, color: Colors.white),
-      label: Text(title, style: const TextStyle(color: Colors.white)),
-      onPressed: onPressed,
     );
   }
 }
