@@ -189,10 +189,10 @@ class _HomeContentState extends State<HomeContent> {
                                             ),
                                           ),
                                           const Text(
-                                            'are occupied',
+                                            'Available Units',
                                             style: TextStyle(
                                               color: Colors.black87,
-                                              fontSize: 12,
+                                              fontSize: 10,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),

@@ -3,7 +3,7 @@ package="com.example.flutter_application_1">
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <application
-        android:label="Comlab Maintenance"
+        android:label="CompStat"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
