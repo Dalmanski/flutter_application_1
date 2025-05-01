@@ -249,7 +249,7 @@ class _QRScanPageState extends State<QRScanPage> {
                         status.toUpperCase(),
                         style: TextStyle(
                           color:
-                              status == "maintenance"
+                              status == "maintenance" || status == "unresolved"
                                   ? Colors.red
                                   : Colors.green,
                           fontWeight: FontWeight.bold,
@@ -258,7 +258,7 @@ class _QRScanPageState extends State<QRScanPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (status == "maintenance")
+                  if (status == "maintenance" || status == "unresolved")
                     Container(
                       padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
