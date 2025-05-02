@@ -236,20 +236,6 @@ class CustomSidebarMenu extends StatelessWidget {
               onPressed: onClose,
               color: Colors.white,
             ),
-            const SizedBox(height: 20),
-            _menuButton(Icons.build, "Maintenance Schedule", () {
-              // Assuming maintenance is index 2
-              onSelect(2);
-            }),
-            const SizedBox(height: 10),
-            const Divider(
-              color: Colors.white,
-              thickness: 1,
-              indent: 10,
-              endIndent: 10,
-            ),
-            const SizedBox(height: 10),
-            _menuButton(Icons.settings, "Settings", () => onSelect(2)),
             const SizedBox(height: 10),
             _menuButton(Icons.add, "Register New PC", () {
               Navigator.push(

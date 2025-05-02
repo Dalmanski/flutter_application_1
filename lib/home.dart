@@ -105,7 +105,7 @@ class _HomeContentState extends State<HomeContent> {
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.3),
                                     blurRadius: 10,
-                                    offset: Offset(0, 4),
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
@@ -301,122 +301,117 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background image
-          Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/free-vector/simple-blue-gradient-background-vector-business_53876-166894.jpg?t=st=1746084723~exp=1746088323~hmac=5bbe55fc1d8f10b27adf454c8924c6557cd467f461786ff874c64d045553011a&w=740',
-              fit: BoxFit.cover,
-            ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.network(
+            'https://img.freepik.com/free-vector/simple-blue-gradient-background-vector-business_53876-166894.jpg?t=st=1746084723~exp=1746088323~hmac=5bbe55fc1d8f10b27adf454c8924c6557cd467f461786ff874c64d045553011a&w=740',
+            fit: BoxFit.cover,
           ),
-          // Foreground content
-          Center(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(255, 255, 255, 0.95),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey,
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              margin: const EdgeInsets.only(
-                top: 90,
-                left: 16,
-                right: 16,
-                bottom: 16,
-              ),
-              child:
-                  isLoading
-                      ? const Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: CircularProgressIndicator(),
-                      )
-                      : comlabs.isEmpty
-                      ? const Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: Text('No Comlabs Found'),
-                      )
-                      : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        shrinkWrap: true,
-                        itemCount: comlabs.length,
-                        itemBuilder: (context, index) {
-                          final lab = comlabs[index];
-                          return Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () => showLabDetail(context, lab),
-                                child: Container(
-                                  padding: const EdgeInsets.all(1),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _capitalize(lab['name']),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF6A48D7),
-                                        ),
+        ),
+        Center(
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(255, 255, 255, 0.95),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            margin: const EdgeInsets.only(
+              top: 90,
+              left: 16,
+              right: 16,
+              bottom: 16,
+            ),
+            child:
+                isLoading
+                    ? const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: CircularProgressIndicator(),
+                    )
+                    : comlabs.isEmpty
+                    ? const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text('No Comlabs Found'),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      shrinkWrap: true,
+                      itemCount: comlabs.length,
+                      itemBuilder: (context, index) {
+                        final lab = comlabs[index];
+                        return Column(
+                          children: [
+                            GestureDetector(
+                              onTap: () => showLabDetail(context, lab),
+                              child: Container(
+                                padding: const EdgeInsets.all(1),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _capitalize(lab['name']),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF6A48D7),
                                       ),
-                                      const SizedBox(height: 10),
-                                      Hero(
-                                        tag: lab['name'],
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(
-                                                  0.3,
-                                                ),
-                                                blurRadius: 10,
-                                                offset: Offset(0, 4),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Hero(
+                                      tag: lab['name'],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.3,
                                               ),
-                                            ],
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            child: Image.network(
-                                              lab['image'] ?? '',
-                                              height: 180,
-                                              width: double.infinity,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (_, __, ___) => const Icon(
-                                                    Icons.broken_image,
-                                                    size: 60,
-                                                  ),
-                                            ),
+                                          child: Image.network(
+                                            lab['image'] ?? '',
+                                            height: 180,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (_, __, ___) => const Icon(
+                                                  Icons.broken_image,
+                                                  size: 60,
+                                                ),
                                           ),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              if (index < comlabs.length - 1) const Divider(),
-                              const SizedBox(height: 10),
-                            ],
-                          );
-                        },
-                      ),
-            ),
+                            ),
+                            const SizedBox(height: 10),
+                            if (index < comlabs.length - 1) const Divider(),
+                            const SizedBox(height: 10),
+                          ],
+                        );
+                      },
+                    ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
