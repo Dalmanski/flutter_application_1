@@ -1,14 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home.dart';
 import 'qrcode.dart';
 import 'register_pc.dart';
 import 'settings.dart';
+import 'welcome_page.dart';
+import 'package:logger/logger.dart';
+
+final logger = Logger();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const SchoolComputerTrackingApp());
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  if (!prefs.containsKey('account_id')) {
+    await prefs.setString('account_id', '');
+  }
+
+  String? accountId = prefs.getString('account_id');
+
+  bool accountExists = false;
+
+  if (accountId != null && accountId.isNotEmpty) {
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(accountId)
+            .get();
+    accountExists = doc.exists;
+  }
+
+  logger.d("Account ID: $accountId");
+  logger.d("Account exists in Firestore: $accountExists");
+
+  runApp(accountExists ? const SchoolComputerTrackingApp() : const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(fontFamily: 'Poppins', useMaterial3: true),
+      home: const WelcomePage(),
+    );
+  }
 }
 
 class SchoolComputerTrackingApp extends StatelessWidget {
@@ -17,6 +58,7 @@ class SchoolComputerTrackingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
+    theme: ThemeData(fontFamily: 'Poppins', useMaterial3: true),
     home: const MainScaffold(),
   );
 }
@@ -55,21 +97,10 @@ class _MainScaffoldState extends State<MainScaffold> {
       body: Stack(
         children: [
           Scaffold(
-            extendBodyBehindAppBar: true,
             appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
+              backgroundColor: Color(0xFF6A48D7),
               leading: IconTheme(
-                data: IconThemeData(
-                  color: Colors.white,
-                  shadows: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
-                      offset: Offset(2, 2),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
+                data: IconThemeData(color: Colors.white),
                 child: IconButton(
                   onPressed: toggleMenu,
                   icon: Icon(Icons.menu),
@@ -77,16 +108,7 @@ class _MainScaffoldState extends State<MainScaffold> {
               ),
               actions: [
                 IconTheme(
-                  data: IconThemeData(
-                    color: Colors.white,
-                    shadows: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
-                        offset: Offset(2, 2),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
+                  data: IconThemeData(color: Colors.white),
                   child: IconButton(
                     onPressed: () {},
                     icon: Icon(Icons.notifications_none),
@@ -98,32 +120,10 @@ class _MainScaffoldState extends State<MainScaffold> {
                 child: Text(
                   'CompStat',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 22,
                     color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(1, 1),
-                        color: Colors.black.withOpacity(0.5),
-                      ),
-                      Shadow(
-                        offset: Offset(-1, 1),
-                        color: Colors.black.withOpacity(0.5),
-                      ),
-                      Shadow(
-                        offset: Offset(1, -1),
-                        color: Colors.black.withOpacity(0.5),
-                      ),
-                      Shadow(
-                        offset: Offset(-1, -1),
-                        color: Colors.black.withOpacity(0.5),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
-                        offset: Offset(2, 2),
-                        blurRadius: 10,
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -223,7 +223,6 @@ class CustomSidebarMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 8,
       child: Container(
         width: 250,
         color: const Color.fromARGB(255, 24, 21, 37),
@@ -236,29 +235,61 @@ class CustomSidebarMenu extends StatelessWidget {
               onPressed: onClose,
               color: Colors.white,
             ),
-            const SizedBox(height: 10),
-            _menuButton(Icons.add, "Register New PC", () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreatePCPage()),
-              );
-            }),
+            const Divider(),
+            const SizedBox(height: 1),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 15,
+                crossAxisSpacing: 15,
+                shrinkWrap: true,
+                children: [
+                  _gridMenuButton(Icons.add, "Register", () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreatePCPage()),
+                    );
+                  }),
+                  _gridMenuButton(Icons.settings, "Placeholder", () {
+                    onSelect(2); // Navigate to settings
+                  }),
+                  _gridMenuButton(Icons.qr_code, "Placeholder", () {
+                    onSelect(1); // Navigate to QR Scanner
+                  }),
+                  _gridMenuButton(Icons.home, "Placeholder", () {
+                    onSelect(0); // Navigate to Home
+                  }),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _menuButton(IconData icon, String title, VoidCallback onPressed) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(255, 75, 66, 89),
-        minimumSize: const Size(double.infinity, 50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  Widget _gridMenuButton(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 75, 66, 89),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
-      icon: Icon(icon, color: Colors.white),
-      label: Text(title, style: const TextStyle(color: Colors.white)),
-      onPressed: onPressed,
     );
   }
 }

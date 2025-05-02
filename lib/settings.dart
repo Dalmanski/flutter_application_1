@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'welcome_page.dart';
+import 'package:logger/logger.dart';
+
+final logger = Logger();
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -10,6 +15,45 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool isDarkMode = false;
+  bool isNotification = false;
+  late Future<String> _userRoleFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userRoleFuture = _fetchUserRole();
+  }
+
+  void logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('account_id', '');
+  }
+
+  Future<String> _fetchUserRole() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? accountId = prefs.getString('account_id');
+      logger.d("Account ID: $accountId");
+
+      if (accountId == null) return "Unknown";
+
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(accountId)
+              .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        return data?['role'] ?? "Unknown";
+      } else {
+        return "Unknown";
+      }
+    } catch (e) {
+      logger.e("Error fetching user role: $e");
+      return "Unknown";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +85,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
 
             // User Role Card
@@ -57,20 +100,49 @@ class _SettingsPageState extends State<SettingsPage> {
                   vertical: 18,
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.person, color: Colors.white, size: 30),
-                    SizedBox(width: 12),
+                  children: [
+                    const Icon(Icons.person, color: Colors.white, size: 30),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        "Student",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: FutureBuilder<String>(
+                        future: _userRoleFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Text(
+                              "Loading...",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          } else if (snapshot.hasError) {
+                            return const Text(
+                              "Error",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          } else {
+                            final role = _capitalize(
+                              snapshot.data ?? "Unknown",
+                            );
+                            return Text(
+                              role,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ),
-                    Icon(
+                    const Icon(
                       Icons.arrow_forward_ios,
                       color: Colors.white,
                       size: 16,
@@ -88,7 +160,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
                   _buildSettingsCard([
-                    _buildListTile(Icons.school, "Student", onTap: () {}),
+                    _buildSwitchTile(
+                      Icons.notifications_active,
+                      "Notification",
+                      isNotification,
+                      (val) {
+                        setState(() {
+                          isNotification = val;
+                        });
+                      },
+                    ),
                     _buildListTile(
                       Icons.display_settings,
                       "Display",
@@ -117,6 +198,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       Icons.logout,
                       "Log Out",
                       onTap: () {
+                        logout();
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
@@ -135,6 +217,12 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  String _capitalize(String name) {
+    return name.isEmpty
+        ? name
+        : name[0].toUpperCase() + name.substring(1).toLowerCase();
   }
 
   Widget _buildSettingsCard(List<Widget> children) {

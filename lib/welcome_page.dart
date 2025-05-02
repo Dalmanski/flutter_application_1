@@ -1,25 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:math';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Role Selection Demo',
-      debugShowCheckedModeBanner: false,
-      home: const WelcomePage(),
-    );
-  }
-}
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
@@ -173,7 +156,23 @@ class StudentConfirmationDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  String accountID = _generateRandomID(16); // 16-char ID
+
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  await prefs.setString('account_id', accountID);
+
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(accountID)
+                      .set({
+                        'role': 'student',
+                        'createdAt': FieldValue.serverTimestamp(),
+                        'username': 'undefied',
+                        'password': 'undefied',
+                      });
+
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -209,6 +208,15 @@ class StudentConfirmationDialog extends StatelessWidget {
   }
 }
 
+String _generateRandomID(int length) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  final rand = Random.secure();
+  return List.generate(
+    length,
+    (index) => chars[rand.nextInt(chars.length)],
+  ).join();
+}
+
 // -------------------- Technician Login Page --------------------
 
 class TechnicianLoginPage extends StatefulWidget {
@@ -237,16 +245,22 @@ class _TechnicianLoginPageState extends State<TechnicianLoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      final query = await FirebaseFirestore.instance.collection('users').get();
-      final match =
-          query.docs.where((doc) {
-            final data = doc.data();
-            return data['username'] == username &&
-                data['password'] == password &&
-                data['role'] == "technician";
-          }).toList();
+      final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('username', isEqualTo: username)
+              .where('password', isEqualTo: password)
+              .where('role', isEqualTo: 'technician')
+              .get();
 
-      if (match.isNotEmpty) {
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        final accountId = doc.id;
+
+        // Save to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('account_id', accountId);
+
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Login successful")));

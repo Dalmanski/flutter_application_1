@@ -273,15 +273,15 @@ class _HomeContentState extends State<HomeContent> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             color: Colors.black54,
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 6),
         Container(
-          width: 60,
-          height: 60,
+          width: 70,
+          height: 70,
           decoration: BoxDecoration(
             color: Colors.grey.shade100,
             borderRadius: BorderRadius.circular(12),
@@ -323,7 +323,7 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
             margin: const EdgeInsets.only(
-              top: 90,
+              top: 17,
               left: 16,
               right: 16,
               bottom: 16,
