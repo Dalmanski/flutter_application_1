@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logger/logger.dart';
+
+final logger = Logger();
 
 class FilteredStatusPage extends StatefulWidget {
   final String status;
@@ -19,11 +23,36 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
   List<Map<String, dynamic>> filteredPCs = [];
   bool isLoading = true;
   String selectedStatus = 'Available';
+  String? role;
 
   @override
   void initState() {
     super.initState();
-    fetchFilteredPCs();
+    initializePage();
+  }
+
+  Future<void> initializePage() async {
+    await fetchUserRole();
+    await fetchFilteredPCs();
+  }
+
+  Future<void> fetchUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accountId = prefs.getString('account_id');
+
+    if (accountId != null && accountId.isNotEmpty) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(accountId)
+              .get();
+      final data = doc.data();
+      if (mounted) {
+        setState(() {
+          role = data?['role'];
+        });
+      }
+    }
   }
 
   Future<void> fetchFilteredPCs() async {
@@ -59,7 +88,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
     }
   }
 
-  void showStatusModal(String pcName) {
+  Future<void> showStatusModal(String pcName) async {
     showDialog(
       context: context,
       builder: (context) {
@@ -214,7 +243,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
       appBar: AppBar(
         title: Text(
           '${widget.labName.toUpperCase()} PC\'s',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -298,7 +327,10 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                 final pcData = filteredPCs[index];
                                 final isExpanded = pcData['isExpanded'] as bool;
                                 final pcStatus =
-                                    pcData['status'].toString().toLowerCase();
+                                    pcData['status']
+                                        ?.toString()
+                                        .toLowerCase() ??
+                                    '';
 
                                 return GestureDetector(
                                   onTap: () {
@@ -331,7 +363,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                pcData['pc'],
+                                                pcData['pc'] ?? 'Unknown',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -417,11 +449,10 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                                       const SizedBox(
                                                         height: 12,
                                                       ),
-                                                      // Only show this button if status is not 'Available' or 'Unresolved'
-                                                      if (pcStatus !=
-                                                              'available' &&
-                                                          pcStatus !=
-                                                              'unresolved') ...[
+                                                      if ((pcStatus !=
+                                                              'available') &&
+                                                          role ==
+                                                              'technician') ...[
                                                         Center(
                                                           child: ElevatedButton(
                                                             onPressed: () {

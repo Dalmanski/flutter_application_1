@@ -246,7 +246,9 @@ class _QRScanPageState extends State<QRScanPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        status.toUpperCase(),
+                        status == "available"
+                            ? "Working"
+                            : status.toUpperCase(),
                         style: TextStyle(
                           color:
                               status == "maintenance" || status == "unresolved"
@@ -366,8 +368,20 @@ class _QRScanPageState extends State<QRScanPage> {
             'time_reported': timeFormatted,
             'date_reported': dateFormatted,
           });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Your $pcName on $comlabName is now on maintenance."),
+          ),
+        );
+      }
     } catch (e) {
-      // Handle error if needed
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to submit ticket: $e")));
+      }
     }
   }
 

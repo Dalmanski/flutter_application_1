@@ -7,6 +7,7 @@ import 'qrcode.dart';
 import 'register_pc.dart';
 import 'settings.dart';
 import 'welcome_page.dart';
+import 'available_pc.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -33,9 +34,6 @@ void main() async {
             .get();
     accountExists = doc.exists;
   }
-
-  logger.d("Account ID: $accountId");
-  logger.d("Account exists in Firestore: $accountExists");
 
   runApp(accountExists ? const SchoolComputerTrackingApp() : const MyApp());
 }
@@ -73,6 +71,7 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
   bool _isMenuOpen = false;
+  String? _role;
 
   void toggleMenu() {
     setState(() => _isMenuOpen = !_isMenuOpen);
@@ -91,121 +90,150 @@ class _MainScaffoldState extends State<MainScaffold> {
     SettingsPage(),
   ];
 
+  Future<String?> _fetchUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accountId = prefs.getString('account_id');
+
+    if (accountId != null && accountId.isNotEmpty) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(accountId)
+              .get();
+      final data = doc.data();
+      return data?['role'];
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Scaffold(
-            appBar: AppBar(
-              backgroundColor: Color(0xFF6A48D7),
-              leading: IconTheme(
-                data: IconThemeData(color: Colors.white),
-                child: IconButton(
-                  onPressed: toggleMenu,
-                  icon: Icon(Icons.menu),
-                ),
-              ),
-              actions: [
-                IconTheme(
-                  data: IconThemeData(color: Colors.white),
-                  child: IconButton(
-                    onPressed: () {},
-                    icon: Icon(Icons.notifications_none),
-                  ),
-                ),
-              ],
-              title: Material(
-                color: Colors.transparent,
-                child: Text(
-                  'CompStat',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 22,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            body: _pages[_currentIndex],
-            bottomNavigationBar: Container(
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
-              ),
-              child: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                selectedItemColor: const Color(0xFF6A48D7),
-                onTap: switchToPage,
-                backgroundColor: Colors.white,
-                items: [
-                  BottomNavigationBarItem(
-                    icon: Icon(
-                      Icons.home,
-                      size: _currentIndex == 0 ? 30 : 24,
-                      color:
-                          _currentIndex == 0
-                              ? const Color(0xFF6A48D7)
-                              : Colors.grey,
-                    ),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: _currentIndex == 1 ? 56 : 48,
-                      height: _currentIndex == 1 ? 56 : 48,
-                      decoration: BoxDecoration(
-                        color:
-                            _currentIndex == 1
-                                ? const Color(0xFF6A48D7)
-                                : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF6A48D7),
-                          width: 2,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.qr_code,
-                        color:
-                            _currentIndex == 1
-                                ? Colors.white
-                                : const Color(0xFF6A48D7),
-                        size: _currentIndex == 1 ? 30 : 24,
-                      ),
-                    ),
-                    label: 'QR Code',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(
-                      Icons.settings,
-                      size: _currentIndex == 2 ? 30 : 24,
-                      color:
-                          _currentIndex == 2
-                              ? const Color(0xFF6A48D7)
-                              : Colors.grey,
-                    ),
-                    label: 'Settings',
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return FutureBuilder<String?>(
+      future: _fetchUserRole(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          // Sidebar
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            top: 0,
-            bottom: 0,
-            left: _isMenuOpen ? 0 : -250,
-            child: CustomSidebarMenu(
-              onClose: toggleMenu,
-              onSelect: (index) => switchToPage(index),
-            ),
+        _role = snapshot.data;
+
+        return Scaffold(
+          body: Stack(
+            children: [
+              Scaffold(
+                appBar: AppBar(
+                  backgroundColor: const Color(0xFF6A48D7),
+                  leading:
+                      _role == 'technician'
+                          ? IconTheme(
+                            data: const IconThemeData(color: Colors.white),
+                            child: IconButton(
+                              onPressed: toggleMenu,
+                              icon: const Icon(Icons.menu),
+                            ),
+                          )
+                          : null,
+                  actions: [
+                    IconTheme(
+                      data: const IconThemeData(color: Colors.white),
+                      child: IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.notifications_none),
+                      ),
+                    ),
+                  ],
+                  title: const Text(
+                    'CompStat',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                body: _pages[_currentIndex],
+                bottomNavigationBar: Container(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  child: BottomNavigationBar(
+                    currentIndex: _currentIndex,
+                    selectedItemColor: const Color(0xFF6A48D7),
+                    onTap: switchToPage,
+                    backgroundColor: Colors.white,
+                    items: [
+                      BottomNavigationBarItem(
+                        icon: Icon(
+                          Icons.home,
+                          size: _currentIndex == 0 ? 30 : 24,
+                          color:
+                              _currentIndex == 0
+                                  ? const Color(0xFF6A48D7)
+                                  : Colors.grey,
+                        ),
+                        label: 'Home',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: _currentIndex == 1 ? 56 : 48,
+                          height: _currentIndex == 1 ? 56 : 48,
+                          decoration: BoxDecoration(
+                            color:
+                                _currentIndex == 1
+                                    ? const Color(0xFF6A48D7)
+                                    : Colors.transparent,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF6A48D7),
+                              width: 2,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.qr_code,
+                            color:
+                                _currentIndex == 1
+                                    ? Colors.white
+                                    : const Color(0xFF6A48D7),
+                            size: _currentIndex == 1 ? 30 : 24,
+                          ),
+                        ),
+                        label: 'QR Code',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(
+                          Icons.settings,
+                          size: _currentIndex == 2 ? 30 : 24,
+                          color:
+                              _currentIndex == 2
+                                  ? const Color(0xFF6A48D7)
+                                  : Colors.grey,
+                        ),
+                        label: 'Settings',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Show Sidebar only for technician
+              if (_role == 'technician')
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  top: 0,
+                  bottom: 350,
+                  left: _isMenuOpen ? 0 : -250,
+                  child: CustomSidebarMenu(
+                    onClose: toggleMenu,
+                    onSelect: (index) => switchToPage(index),
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -225,7 +253,10 @@ class CustomSidebarMenu extends StatelessWidget {
     return Material(
       child: Container(
         width: 250,
-        color: const Color.fromARGB(255, 24, 21, 37),
+        decoration: const BoxDecoration(
+          color: Color.fromARGB(255, 24, 21, 37),
+          borderRadius: BorderRadius.only(bottomRight: Radius.circular(30)),
+        ),
         padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,14 +281,19 @@ class CustomSidebarMenu extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => const CreatePCPage()),
                     );
                   }),
-                  _gridMenuButton(Icons.settings, "Placeholder", () {
-                    onSelect(2); // Navigate to settings
+                  _gridMenuButton(Icons.computer, "All PC's", () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AvailableComputersPage(),
+                      ),
+                    );
                   }),
-                  _gridMenuButton(Icons.qr_code, "Placeholder", () {
-                    onSelect(1); // Navigate to QR Scanner
+                  _gridMenuButton(Icons.qr_code, "QR Scanner", () {
+                    onSelect(1);
                   }),
-                  _gridMenuButton(Icons.home, "Placeholder", () {
-                    onSelect(0); // Navigate to Home
+                  _gridMenuButton(Icons.home, "Home", () {
+                    onSelect(0);
                   }),
                 ],
               ),

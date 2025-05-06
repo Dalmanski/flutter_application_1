@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:math';
+import 'dart:io';
 import 'main.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -11,15 +13,54 @@ class WelcomePage extends StatefulWidget {
   State<WelcomePage> createState() => _WelcomePageState();
 }
 
+Future<String> storeDeviceName() async {
+  final deviceInfo = DeviceInfoPlugin();
+  String deviceName = 'Unknown';
+
+  if (Platform.isAndroid) {
+    final androidInfo = await deviceInfo.androidInfo;
+    deviceName = androidInfo.model;
+  } else if (Platform.isIOS) {
+    final iosInfo = await deviceInfo.iosInfo;
+    deviceName = iosInfo.name;
+  }
+
+  return deviceName;
+}
+
 class _WelcomePageState extends State<WelcomePage> {
   String? selectedRole;
 
-  void _handleGetStarted() {
+  void _handleGetStarted() async {
     if (selectedRole == "Student") {
-      showDialog(
+      final shouldProceed = await showDialog<bool>(
         context: context,
         builder: (_) => const StudentConfirmationDialog(),
       );
+
+      if (shouldProceed == true && context.mounted) {
+        String device = await storeDeviceName();
+        String accountID = _generateRandomID(16);
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('account_id', accountID);
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(accountID)
+            .set({
+              'role': 'student',
+              'createdAt': FieldValue.serverTimestamp(),
+              'username': 'undefined',
+              'password': 'undefined',
+              'deviceName': device,
+            });
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SchoolComputerTrackingApp()),
+        );
+      }
     } else if (selectedRole == "Technician") {
       Navigator.push(
         context,
@@ -65,11 +106,12 @@ class _WelcomePageState extends State<WelcomePage> {
           ),
           const SizedBox(height: 20),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 30),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildRoleCard("Student", Icons.people_alt_outlined),
+                const SizedBox(width: 20),
                 _buildRoleCard("Technician", Icons.work_outline),
               ],
             ),
@@ -103,8 +145,8 @@ class _WelcomePageState extends State<WelcomePage> {
         });
       },
       child: Container(
-        width: 100,
-        height: 100,
+        width: 150,
+        height: 150,
         decoration: BoxDecoration(
           color: isSelected ? Colors.deepPurple[100] : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
@@ -119,9 +161,15 @@ class _WelcomePageState extends State<WelcomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.deepPurple),
-            const SizedBox(height: 10),
-            Text(role),
+            Icon(icon, size: 50, color: Colors.deepPurple),
+            const SizedBox(height: 15),
+            Text(
+              role,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ), // Increased font size
+            ),
           ],
         ),
       ),
@@ -156,29 +204,8 @@ class StudentConfirmationDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
-                onPressed: () async {
-                  String accountID = _generateRandomID(16); // 16-char ID
-
-                  SharedPreferences prefs =
-                      await SharedPreferences.getInstance();
-                  await prefs.setString('account_id', accountID);
-
-                  await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(accountID)
-                      .set({
-                        'role': 'student',
-                        'createdAt': FieldValue.serverTimestamp(),
-                        'username': 'undefied',
-                        'password': 'undefied',
-                      });
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SchoolComputerTrackingApp(),
-                    ),
-                  );
+                onPressed: () {
+                  Navigator.pop(context, true);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -190,7 +217,7 @@ class StudentConfirmationDialog extends StatelessWidget {
                 ),
               ),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(context, false),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -257,16 +284,23 @@ class _TechnicianLoginPageState extends State<TechnicianLoginPage> {
         final doc = querySnapshot.docs.first;
         final accountId = doc.id;
 
-        // Save to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('account_id', accountId);
-
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Login successful")));
-        Navigator.pushReplacement(
+
+        String device = await storeDeviceName();
+        await FirebaseFirestore.instance.collection('users').doc(accountId).set(
+          {'loginOn': FieldValue.serverTimestamp(), 'deviceName': device},
+          SetOptions(merge: true),
+        );
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('account_id', accountId);
+
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const SchoolComputerTrackingApp()),
+          (Route<dynamic> route) => false, // This removes all previous routes
         );
       } else {
         ScaffoldMessenger.of(
