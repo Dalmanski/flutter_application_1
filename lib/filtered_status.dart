@@ -449,8 +449,8 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                                       const SizedBox(
                                                         height: 12,
                                                       ),
-                                                      if ((pcStatus !=
-                                                              'available') &&
+                                                      if ((pcStatus ==
+                                                              'maintenance') &&
                                                           role ==
                                                               'technician') ...[
                                                         Center(

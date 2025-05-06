@@ -80,12 +80,11 @@ class _CreatePCPageState extends State<CreatePCPage> {
       await pcsCollection.doc(newDocID).set({
         'pc_name': inputPCName.isEmpty ? newDocID : inputPCName,
         'date_reported': todayDate,
-        'status': 'working',
+        'status': 'available',
         'time_reported': todayTime,
         'comlab': comlabDocID,
         'generated_link': link,
         'last_issue': "",
-        'image': staticImageUrl,
       });
 
       if (!mounted) return;

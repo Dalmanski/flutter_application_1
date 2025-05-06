@@ -70,7 +70,7 @@ class AvailableComputersPage extends StatelessWidget {
 
   Icon _statusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'working':
+      case 'available':
         return const Icon(Icons.check_circle, color: Colors.green);
       case 'maintenance':
         return const Icon(Icons.error, color: Colors.orange);
@@ -83,11 +83,11 @@ class AvailableComputersPage extends StatelessWidget {
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'working':
+      case 'available':
         return Colors.green;
       case 'maintenance':
         return Colors.orange;
-      case 'not working':
+      case 'unresolved':
         return Colors.red;
       default:
         return Colors.grey;
