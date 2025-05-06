@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'dart:math';
 import 'dart:io';
 import 'main.dart';
 
@@ -39,22 +38,35 @@ class _WelcomePageState extends State<WelcomePage> {
       );
 
       if (shouldProceed == true && context.mounted) {
-        String device = await storeDeviceName();
-        String accountID = _generateRandomID(16);
+        final deviceInfo = DeviceInfoPlugin();
+        String? deviceId;
+        String deviceName = await storeDeviceName();
+
+        if (Platform.isAndroid) {
+          final androidInfo = await deviceInfo.androidInfo;
+          deviceId = androidInfo.id;
+        } else if (Platform.isIOS) {
+          final iosInfo = await deviceInfo.iosInfo;
+          deviceId = iosInfo.identifierForVendor;
+        }
+
+        if (deviceId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to retrieve device ID")),
+          );
+          return;
+        }
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('account_id', accountID);
+        await prefs.setString('account_id', deviceId);
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(accountID)
-            .set({
-              'role': 'student',
-              'createdAt': FieldValue.serverTimestamp(),
-              'username': 'undefined',
-              'password': 'undefined',
-              'deviceName': device,
-            });
+        await FirebaseFirestore.instance.collection('users').doc(deviceId).set({
+          'role': 'student',
+          'createdAt': FieldValue.serverTimestamp(),
+          'username': 'NA',
+          'password': 'NA',
+          'deviceName': deviceName,
+        }, SetOptions(merge: true)); // Overwrite or merge if already exists
 
         Navigator.pushReplacement(
           context,
@@ -204,8 +216,10 @@ class StudentConfirmationDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
+                onPressed: () async {
+                  Navigator.of(
+                    context,
+                  ).pop(true); // This is to prevent click back button
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -233,15 +247,6 @@ class StudentConfirmationDialog extends StatelessWidget {
       ),
     );
   }
-}
-
-String _generateRandomID(int length) {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  final rand = Random.secure();
-  return List.generate(
-    length,
-    (index) => chars[rand.nextInt(chars.length)],
-  ).join();
 }
 
 // -------------------- Technician Login Page --------------------

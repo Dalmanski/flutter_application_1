@@ -11,22 +11,45 @@ class CreatePCPage extends StatefulWidget {
 }
 
 class _CreatePCPageState extends State<CreatePCPage> {
-  final TextEditingController _comlabController = TextEditingController();
   final TextEditingController _pcNameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
   bool isLoading = false;
-  String? generatedLink; // 🌟 To store the generated link after submit
+  String? generatedLink;
+  String? selectedComlab;
+  List<Map<String, dynamic>> comlabList = [];
+
+  final String staticImageUrl =
+      "https://www.leetdesk.com/_next/image?url=https%3A%2F%2Fimages.prismic.io%2Fleetdesk%2F37888785-fa43-4243-ae48-2a9ca2f35ff0_atmosphaerisches-gamer-zimmer.jpg%3Fauto%3Dcompress%2Cformat&w=3840&q=75";
 
   @override
-  void dispose() {
-    _comlabController.dispose();
-    _pcNameController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    selectedComlab = null;
+    _loadComlabs();
+  }
+
+  Future<void> _loadComlabs() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('comlab rooms').get();
+    setState(() {
+      comlabList =
+          snapshot.docs
+              .map(
+                (doc) => {'id': doc.id, 'name': doc['comlab_name'] ?? doc.id},
+              )
+              .toList();
+    });
   }
 
   Future<void> _submitData() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (selectedComlab == null || selectedComlab!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a Computer Laboratory')),
+      );
+      return;
+    }
 
     setState(() {
       isLoading = true;
@@ -34,35 +57,35 @@ class _CreatePCPageState extends State<CreatePCPage> {
     });
 
     try {
-      String comlabName = _comlabController.text.trim();
-      String pcName = _pcNameController.text.trim();
+      String comlabDocID = selectedComlab!;
+      String inputPCName = _pcNameController.text.trim();
+
+      final pcsCollection = FirebaseFirestore.instance
+          .collection('comlab rooms')
+          .doc(comlabDocID)
+          .collection('PCs');
+
+      String newDocID = inputPCName;
+
+      if (newDocID.isEmpty) {
+        final snapshot = await pcsCollection.get();
+        int nextIndex = snapshot.docs.length + 1;
+        newDocID = 'PC $nextIndex';
+      }
+
       String todayDate = DateFormat('MMMM d, yyyy').format(DateTime.now());
       String todayTime = DateFormat('hh:mm a').format(DateTime.now());
+      String link = "https://comlab.com/pc?comlab=$comlabDocID&pc=$newDocID";
 
-      final comlabRef = FirebaseFirestore.instance
-          .collection('comlab rooms')
-          .doc(comlabName);
-
-      await comlabRef.set({
-        'created_at': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      final pcRef = comlabRef.collection('PCs').doc(pcName);
-
-      // 🔥 Encode names before making the link
-      String encodedComlab = Uri.encodeComponent(comlabName);
-      String encodedPC = Uri.encodeComponent(pcName);
-
-      String link = "https://comlab.com/pc?comlab=$encodedComlab&pc=$encodedPC";
-
-      // 🌟 Save all PC info including the link
-      await pcRef.set({
+      await pcsCollection.doc(newDocID).set({
+        'pc_name': inputPCName.isEmpty ? newDocID : inputPCName,
         'date_reported': todayDate,
         'status': 'working',
         'time_reported': todayTime,
-        'comlab': comlabName,
+        'comlab': comlabDocID,
         'generated_link': link,
         'last_issue': "",
+        'image': staticImageUrl,
       });
 
       if (!mounted) return;
@@ -85,6 +108,120 @@ class _CreatePCPageState extends State<CreatePCPage> {
         });
       }
     }
+  }
+
+  Future<void> _showAddComlabModal() async {
+    final TextEditingController nameController = TextEditingController();
+    final scaffoldContext = context; // Save this context for SnackBars
+    bool modalLoading = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            Future<void> createComlab() async {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a name')),
+                );
+                return;
+              }
+
+              setStateDialog(() {
+                modalLoading = true;
+              });
+
+              try {
+                final snapshot =
+                    await FirebaseFirestore.instance
+                        .collection('comlab rooms')
+                        .get();
+                String nextDocID = 'comlab ${snapshot.docs.length + 1}';
+
+                await FirebaseFirestore.instance
+                    .collection('comlab rooms')
+                    .doc(nextDocID)
+                    .set({
+                      'comlab_name': nameController.text.trim(),
+                      'image': staticImageUrl,
+                      'created_at': FieldValue.serverTimestamp(),
+                    });
+
+                Navigator.of(context).pop();
+                await _loadComlabs();
+
+                if (mounted) {
+                  setState(() {
+                    selectedComlab = nextDocID;
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('New Comlab added successfully!'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  scaffoldContext,
+                ).showSnackBar(SnackBar(content: Text('Error: $e')));
+              } finally {
+                if (mounted) {
+                  try {
+                    setStateDialog(() {
+                      modalLoading = false;
+                    });
+                  } catch (_) {
+                    // Dialog already popped — do nothing
+                  }
+                }
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Add New Comlab'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Comlab Name'),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('Static image will be used.'),
+                  const SizedBox(height: 10),
+                  Image.network(staticImageUrl, height: 100),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: modalLoading ? null : createComlab,
+                  child:
+                      modalLoading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Text('Create'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _pcNameController.dispose();
+    super.dispose();
   }
 
   @override
@@ -112,40 +249,55 @@ class _CreatePCPageState extends State<CreatePCPage> {
           child: ListView(
             children: [
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _comlabController,
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(
-                  labelText: 'Computer Laboratory Name',
+                  labelText: 'Select Computer Laboratory',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter Computer Laboratory Name';
+                value: selectedComlab,
+                items: [
+                  ...comlabList.map(
+                    (lab) => DropdownMenuItem(
+                      value: lab['id'],
+                      child: Text(lab['name']),
+                    ),
+                  ),
+                  const DropdownMenuItem(
+                    value: 'add_new',
+                    child: Text('➕ Add Comlab'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == 'add_new') {
+                    _showAddComlabModal();
+                  } else {
+                    setState(() {
+                      selectedComlab = value;
+                    });
                   }
-                  return null;
                 },
+                validator:
+                    (value) =>
+                        value == null || value.isEmpty
+                            ? 'Please select a lab'
+                            : null,
               ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: _pcNameController,
                 decoration: InputDecoration(
-                  labelText: 'PC Name',
+                  labelText: 'PC Name (optional)',
+                  hintText: 'Auto create PC name if it is empty',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   filled: true,
                   fillColor: Colors.white,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter PC Name';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 30),
               ElevatedButton(
@@ -162,10 +314,7 @@ class _CreatePCPageState extends State<CreatePCPage> {
                 child:
                     isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                          'Submit',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        : const Text('Submit'),
               ),
               const SizedBox(height: 30),
               if (generatedLink != null) ...[

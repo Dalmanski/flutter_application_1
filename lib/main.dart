@@ -289,12 +289,6 @@ class CustomSidebarMenu extends StatelessWidget {
                       ),
                     );
                   }),
-                  _gridMenuButton(Icons.qr_code, "QR Scanner", () {
-                    onSelect(1);
-                  }),
-                  _gridMenuButton(Icons.home, "Home", () {
-                    onSelect(0);
-                  }),
                 ],
               ),
             ),
