@@ -65,13 +65,10 @@ class _CreatePCPageState extends State<CreatePCPage> {
           .doc(comlabDocID)
           .collection('PCs');
 
-      String newDocID = inputPCName;
-
-      if (newDocID.isEmpty) {
-        final snapshot = await pcsCollection.get();
-        int nextIndex = snapshot.docs.length + 1;
-        newDocID = 'PC $nextIndex';
-      }
+      // Generate auto-incremented doc ID regardless of input
+      final snapshot = await pcsCollection.get();
+      int nextIndex = snapshot.docs.length + 1;
+      String newDocID = 'PC $nextIndex';
 
       String todayDate = DateFormat('MMMM d, yyyy').format(DateTime.now());
       String todayTime = DateFormat('hh:mm a').format(DateTime.now());

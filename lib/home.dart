@@ -27,14 +27,14 @@ class _HomeContentState extends State<HomeContent> {
       List<Map<String, dynamic>> fetchedComlabs = [];
 
       for (var roomDoc in roomsSnapshot.docs) {
-        final roomName = roomDoc.id;
         final roomData = roomDoc.data() as Map<String, dynamic>;
+        final roomName = roomData['comlab_name'] ?? roomDoc.id;
         final imageUrl = roomData['image'] ?? '';
 
         final pcsSnapshot =
             await FirebaseFirestore.instance
                 .collection('comlab rooms')
-                .doc(roomName)
+                .doc(roomDoc.id)
                 .collection('PCs')
                 .get();
 
@@ -99,6 +99,8 @@ class _HomeContentState extends State<HomeContent> {
                           Hero(
                             tag: lab['name'],
                             child: Container(
+                              height: 180,
+                              width: double.infinity,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
@@ -113,37 +115,28 @@ class _HomeContentState extends State<HomeContent> {
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.network(
                                   lab['image'] ?? '',
-                                  height: 180,
-                                  width: double.infinity,
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (
-                                    BuildContext context,
-                                    Widget child,
-                                    ImageChunkEvent? loadingProgress,
-                                  ) {
-                                    if (loadingProgress == null) {
-                                      return child;
-                                    } else {
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value:
-                                              loadingProgress
-                                                          .expectedTotalBytes !=
-                                                      null
-                                                  ? loadingProgress
-                                                          .cumulativeBytesLoaded /
-                                                      (loadingProgress
-                                                              .expectedTotalBytes ??
-                                                          1)
-                                                  : null,
-                                        ),
-                                      );
-                                    }
+                                  loadingBuilder: (context, child, progress) {
+                                    if (progress == null) return child;
+                                    return Container(
+                                      height: 180,
+                                      width: double.infinity,
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
                                   },
                                   errorBuilder:
-                                      (_, __, ___) => const Icon(
-                                        Icons.broken_image,
-                                        size: 60,
+                                      (_, __, ___) => Container(
+                                        height: 180,
+                                        width: double.infinity,
+                                        color: Colors.grey.shade300,
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          size: 60,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                 ),
                               ),
@@ -208,62 +201,26 @@ class _HomeContentState extends State<HomeContent> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => FilteredStatusPage(
-                                        status: 'available',
-                                        labName: lab['name'],
-                                      ),
-                                ),
-                              );
-                            },
-                            child: _statusBox(
-                              label: "Available",
-                              icon: Icons.check,
-                              color: Colors.green,
-                            ),
+                          _buildStatusButton(
+                            context,
+                            lab,
+                            'available',
+                            Icons.check,
+                            Colors.green,
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => FilteredStatusPage(
-                                        status: 'maintenance',
-                                        labName: lab['name'],
-                                      ),
-                                ),
-                              );
-                            },
-                            child: _statusBox(
-                              label: "Maintenance",
-                              icon: Icons.build,
-                              color: Colors.orange,
-                            ),
+                          _buildStatusButton(
+                            context,
+                            lab,
+                            'maintenance',
+                            Icons.build,
+                            Colors.orange,
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => FilteredStatusPage(
-                                        status: 'unresolved',
-                                        labName: lab['name'],
-                                      ),
-                                ),
-                              );
-                            },
-                            child: _statusBox(
-                              label: "Unresolved",
-                              icon: Icons.warning,
-                              color: Colors.red,
-                            ),
+                          _buildStatusButton(
+                            context,
+                            lab,
+                            'unresolved',
+                            Icons.warning,
+                            Colors.red,
                           ),
                         ],
                       ),
@@ -284,6 +241,31 @@ class _HomeContentState extends State<HomeContent> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStatusButton(
+    BuildContext context,
+    Map<String, dynamic> lab,
+    String status,
+    IconData icon,
+    Color color,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => FilteredStatusPage(status: status, labName: lab['name']),
+          ),
+        );
+      },
+      child: _statusBox(
+        label: status[0].toUpperCase() + status.substring(1),
+        icon: icon,
+        color: color,
+      ),
     );
   }
 
@@ -346,12 +328,7 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               ],
             ),
-            margin: const EdgeInsets.only(
-              top: 17,
-              left: 16,
-              right: 16,
-              bottom: 16,
-            ),
+            margin: const EdgeInsets.all(16),
             child:
                 isLoading
                     ? const Padding(
@@ -373,81 +350,65 @@ class _HomeContentState extends State<HomeContent> {
                           children: [
                             GestureDetector(
                               onTap: () => showLabDetail(context, lab),
-                              child: Container(
-                                padding: const EdgeInsets.all(1),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _capitalize(lab['name']),
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF6A48D7),
-                                      ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _capitalize(lab['name']),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF6A48D7),
                                     ),
-                                    const SizedBox(height: 10),
-                                    Hero(
-                                      tag: lab['name'],
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.3,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Hero(
+                                    tag: lab['name'],
+                                    child: Container(
+                                      height: 180,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.network(
+                                          lab['image'] ?? '',
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (
+                                            context,
+                                            child,
+                                            progress,
+                                          ) {
+                                            if (progress == null) {
+                                              return child;
+                                            }
+                                            return Container(
+                                              height: 180,
+                                              width: double.infinity,
+                                              color: Colors.grey.shade200,
+                                              child: const Center(
+                                                child:
+                                                    CircularProgressIndicator(),
                                               ),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          child: Image.network(
-                                            lab['image'] ?? '',
-                                            height: 180,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                            loadingBuilder: (
-                                              BuildContext context,
-                                              Widget child,
-                                              ImageChunkEvent? loadingProgress,
-                                            ) {
-                                              if (loadingProgress == null) {
-                                                return child;
-                                              } else {
-                                                return Center(
-                                                  child: CircularProgressIndicator(
-                                                    value:
-                                                        loadingProgress
-                                                                    .expectedTotalBytes !=
-                                                                null
-                                                            ? loadingProgress
-                                                                    .cumulativeBytesLoaded /
-                                                                (loadingProgress
-                                                                        .expectedTotalBytes ??
-                                                                    1)
-                                                            : null,
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            errorBuilder:
-                                                (_, __, ___) => const Icon(
+                                            );
+                                          },
+                                          errorBuilder:
+                                              (_, __, ___) => Container(
+                                                height: 180,
+                                                width: double.infinity,
+                                                color: Colors.grey.shade300,
+                                                child: const Icon(
                                                   Icons.broken_image,
                                                   size: 60,
+                                                  color: Colors.grey,
                                                 ),
-                                          ),
+                                              ),
                                         ),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 10),

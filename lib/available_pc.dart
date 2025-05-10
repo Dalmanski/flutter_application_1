@@ -13,24 +13,27 @@ class AvailableComputersPage extends StatelessWidget {
     Map<String, List<Map<String, dynamic>>> data = {};
 
     for (var comlabDoc in comlabSnapshot.docs) {
-      final comlabName = comlabDoc.id;
+      final comlabData = comlabDoc.data();
+      final comlabName = comlabData['comlab_name'] ?? comlabDoc.id;
+
       final pcsSnapshot =
           await FirebaseFirestore.instance
               .collection('comlab rooms')
-              .doc(comlabName)
+              .doc(comlabDoc.id)
               .collection('PCs')
               .get();
 
       final pcs =
           pcsSnapshot.docs.map((doc) {
-            final status = doc['status']?.toString().toLowerCase() ?? '';
+            final pcData = doc.data();
+            final status = (pcData['status']?.toString().toLowerCase()) ?? '';
             return {
-              'pc_name': doc.id,
+              'pc_name': pcData['pc_name'] ?? doc.id,
               'status': status,
-              'date_reported': doc['date_reported'] ?? '',
-              'time_reported': doc['time_reported'] ?? '',
-              'generated_link': doc['generated_link'] ?? '',
-              'last_issue': doc['last_issue'] ?? '',
+              'date_reported': pcData['date_reported'] ?? '',
+              'time_reported': pcData['time_reported'] ?? '',
+              'generated_link': pcData['generated_link'] ?? '',
+              'last_issue': pcData['last_issue'] ?? '',
             };
           }).toList();
 

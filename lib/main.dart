@@ -222,8 +222,8 @@ class _MainScaffoldState extends State<MainScaffold> {
               if (_role == 'technician')
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
-                  top: 0,
-                  bottom: 350,
+                  top: 75,
+                  bottom: 550,
                   left: _isMenuOpen ? 0 : -250,
                   child: CustomSidebarMenu(
                     onClose: toggleMenu,
@@ -257,16 +257,10 @@ class CustomSidebarMenu extends StatelessWidget {
           color: Color.fromARGB(255, 24, 21, 37),
           borderRadius: BorderRadius.only(bottomRight: Radius.circular(30)),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: onClose,
-              color: Colors.white,
-            ),
-            const Divider(),
             const SizedBox(height: 1),
             Expanded(
               child: GridView.count(

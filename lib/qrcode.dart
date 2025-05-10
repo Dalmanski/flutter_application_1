@@ -1,7 +1,8 @@
+// ✅ Full corrected version below
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // For AM/PM formatting
+import 'package:intl/intl.dart';
 
 class QRScanPage extends StatefulWidget {
   const QRScanPage({super.key});
@@ -31,7 +32,7 @@ class _QRScanPageState extends State<QRScanPage> {
       controller.pauseCamera();
       setState(() {
         qrLink = scanData.code ?? '';
-        isLoading = true; // Show loading immediately after detection
+        isLoading = true;
       });
       await fetchPCData(qrLink);
     });
@@ -39,15 +40,10 @@ class _QRScanPageState extends State<QRScanPage> {
 
   Future<void> fetchPCData(String urlString) async {
     try {
-      // 🔥 Check if it contains the correct domain
-      if (!urlString.contains('comlab.com')) {
-        _showInvalidQRDialog("Missing comlab.com");
-        return;
-      }
-
-      // 🔥 Check if it has both comlab= and pc=
-      if (!urlString.contains('comlab=') || !urlString.contains('pc=')) {
-        _showInvalidQRDialog(urlString);
+      if (!urlString.contains('comlab.com') ||
+          !urlString.contains('comlab=') ||
+          !urlString.contains('pc=')) {
+        _showInvalidQRDialog("Invalid QR format");
         return;
       }
 
@@ -64,14 +60,13 @@ class _QRScanPageState extends State<QRScanPage> {
         );
         pc = urlString.substring(pcStart + 3);
 
-        // 🛠️ Decode %20 into real spaces
         comlab = Uri.decodeComponent(comlab);
         pc = Uri.decodeComponent(pc);
       }
 
       if (comlab.isNotEmpty && pc.isNotEmpty) {
         setState(() {
-          pcData = {'comlab': comlab, 'pc': pc};
+          pcData = {'comlabId': comlab, 'pcId': pc};
         });
 
         await checkPCInFirestore(comlab, pc);
@@ -89,31 +84,50 @@ class _QRScanPageState extends State<QRScanPage> {
     }
   }
 
-  Future<void> checkPCInFirestore(String comlabName, String pcName) async {
+  Future<void> checkPCInFirestore(String comlabDocId, String pcDocId) async {
     try {
-      final docSnapshot =
+      final comlabDoc =
           await FirebaseFirestore.instance
               .collection('comlab rooms')
-              .doc(comlabName)
-              .collection('PCs')
-              .doc(pcName)
+              .doc(comlabDocId)
               .get();
 
-      if (docSnapshot.exists) {
-        final data = docSnapshot.data()!;
-        setState(() {
-          pcData = {
-            'lab': comlabName,
-            'pc': pcName,
-            'status': data['status'] ?? 'working',
-          };
-        });
-        _showComputerStatusModal();
-      } else {
-        _showUnknownPCDialog(pcName, comlabName);
+      if (!comlabDoc.exists) {
+        _showUnknownPCDialog(pcDocId, comlabDocId);
+        return;
       }
+
+      final comlabName = comlabDoc.data()?['comlab_name'] ?? comlabDocId;
+
+      final pcDoc =
+          await FirebaseFirestore.instance
+              .collection('comlab rooms')
+              .doc(comlabDocId)
+              .collection('PCs')
+              .doc(pcDocId)
+              .get();
+
+      if (!pcDoc.exists) {
+        _showUnknownPCDialog(pcDocId, comlabName);
+        return;
+      }
+
+      final pcName = pcDoc.data()?['pc_name'] ?? pcDocId;
+      final status = pcDoc.data()?['status'] ?? 'working';
+
+      setState(() {
+        pcData = {
+          'comlabId': comlabDocId,
+          'pcId': pcDocId,
+          'lab': comlabName,
+          'pc': pcName,
+          'status': status,
+        };
+      });
+
+      _showComputerStatusModal();
     } catch (e) {
-      _showUnknownPCDialog(pcName, comlabName);
+      _showUnknownPCDialog(pcDocId, comlabDocId);
     }
   }
 
@@ -124,11 +138,7 @@ class _QRScanPageState extends State<QRScanPage> {
       builder:
           (context) => AlertDialog(
             title: const Text("Invalid QR Code"),
-            content: Text(
-              error != null
-                  ? "Error: $error"
-                  : "Not a correct QR code, try again.",
-            ),
+            content: Text(error ?? "Not a correct QR code, try again."),
             actions: [
               TextButton(
                 onPressed: () {
@@ -230,10 +240,7 @@ class _QRScanPageState extends State<QRScanPage> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        pcData?["pc"] ?? 'Unknown PC',
-                        style: const TextStyle(fontWeight: FontWeight.normal),
-                      ),
+                      Text(pcData?["pc"] ?? 'Unknown PC'),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -251,7 +258,8 @@ class _QRScanPageState extends State<QRScanPage> {
                             : status.toUpperCase(),
                         style: TextStyle(
                           color:
-                              status == "maintenance" || status == "unresolved"
+                              (status == "maintenance" ||
+                                      status == "unresolved")
                                   ? Colors.red
                                   : Colors.green,
                           fontWeight: FontWeight.bold,
@@ -326,8 +334,10 @@ class _QRScanPageState extends State<QRScanPage> {
                           controller?.resumeCamera();
 
                           await updatePCStatusAndLogTicket(
-                            pcData?["lab"] ?? '',
-                            pcData?["pc"] ?? '',
+                            pcData?["comlabId"],
+                            pcData?["pcId"],
+                            pcData?["lab"],
+                            pcData?["pc"],
                             issueText,
                           );
                         },
@@ -348,8 +358,10 @@ class _QRScanPageState extends State<QRScanPage> {
   }
 
   Future<void> updatePCStatusAndLogTicket(
-    String comlabName,
-    String pcName,
+    String? comlabDocId,
+    String? pcDocId,
+    String? comlabName,
+    String? pcName,
     String issueDescription,
   ) async {
     final now = DateTime.now();
@@ -359,9 +371,9 @@ class _QRScanPageState extends State<QRScanPage> {
     try {
       await FirebaseFirestore.instance
           .collection('comlab rooms')
-          .doc(comlabName)
+          .doc(comlabDocId)
           .collection('PCs')
-          .doc(pcName)
+          .doc(pcDocId)
           .update({
             'status': 'maintenance',
             'last_issue': issueDescription,

@@ -24,6 +24,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
   bool isLoading = true;
   String selectedStatus = 'Available';
   String? role;
+  String? docId;
 
   @override
   void initState() {
@@ -56,11 +57,29 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
   }
 
   Future<void> fetchFilteredPCs() async {
-    final labDocRef = FirebaseFirestore.instance
-        .collection('comlab rooms')
-        .doc(widget.labName);
+    setState(() {
+      isLoading = true;
+    });
 
-    final pcsSnapshot = await labDocRef.collection('PCs').get();
+    final querySnapshot =
+        await FirebaseFirestore.instance
+            .collection('comlab rooms')
+            .where('comlab_name', isEqualTo: widget.labName)
+            .limit(1)
+            .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      logger.e("No matching comlab found for name ${widget.labName}");
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final labDoc = querySnapshot.docs.first;
+    docId = labDoc.id;
+
+    final pcsSnapshot = await labDoc.reference.collection('PCs').get();
 
     List<Map<String, dynamic>> tempList = [];
 
@@ -70,7 +89,8 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
 
       if (status.toLowerCase() == widget.status.toLowerCase()) {
         tempList.add({
-          'pc': pc.id,
+          'pcId': pc.id,
+          'pcName': data['pc_name'] ?? pc.id, // Use pc_name if available
           'isExpanded': false,
           'status': status,
           'date': data['date_reported'] ?? '',
@@ -88,7 +108,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
     }
   }
 
-  Future<void> showStatusModal(String pcName) async {
+  Future<void> showStatusModal(String pcId, String pcName) async {
     showDialog(
       context: context,
       builder: (context) {
@@ -146,7 +166,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                 selectedStatus = value;
                               });
                               Navigator.of(context).pop();
-                              showStatusModal(pcName);
+                              showStatusModal(pcId, pcName);
                             }
                           },
                         ),
@@ -160,7 +180,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                 selectedStatus = value;
                               });
                               Navigator.of(context).pop();
-                              showStatusModal(pcName);
+                              showStatusModal(pcId, pcName);
                             }
                           },
                         ),
@@ -169,11 +189,13 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () async {
+                        if (docId == null) return;
+
                         final pcRef = FirebaseFirestore.instance
                             .collection('comlab rooms')
-                            .doc(widget.labName)
+                            .doc(docId)
                             .collection('PCs')
-                            .doc(pcName);
+                            .doc(pcId);
 
                         await pcRef.update({
                           'status': selectedStatus.toLowerCase(),
@@ -331,6 +353,8 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                         ?.toString()
                                         .toLowerCase() ??
                                     '';
+                                final pcName = pcData['pcName'] ?? 'Unknown';
+                                final pcId = pcData['pcId'];
 
                                 return GestureDetector(
                                   onTap: () {
@@ -363,7 +387,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                pcData['pc'] ?? 'Unknown',
+                                                pcName,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -457,8 +481,8 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                                                           child: ElevatedButton(
                                                             onPressed: () {
                                                               showStatusModal(
-                                                                pcData['pc'] ??
-                                                                    'Unknown',
+                                                                pcId,
+                                                                pcName,
                                                               );
                                                             },
                                                             style: ElevatedButton.styleFrom(
