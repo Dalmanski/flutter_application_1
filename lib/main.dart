@@ -35,7 +35,7 @@ void main() async {
     accountExists = doc.exists;
   }
 
-  runApp(accountExists ? const SchoolComputerTrackingApp() : const MyApp());
+  runApp(accountExists ? const StartHomeApp() : const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -50,8 +50,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class SchoolComputerTrackingApp extends StatelessWidget {
-  const SchoolComputerTrackingApp({super.key});
+class StartHomeApp extends StatelessWidget {
+  const StartHomeApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(

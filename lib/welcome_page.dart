@@ -66,11 +66,11 @@ class _WelcomePageState extends State<WelcomePage> {
           'username': 'NA',
           'password': 'NA',
           'deviceName': deviceName,
-        }, SetOptions(merge: true)); // Overwrite or merge if already exists
+        }, SetOptions(merge: true));
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const SchoolComputerTrackingApp()),
+          MaterialPageRoute(builder: (_) => const StartHomeApp()),
         );
       }
     } else if (selectedRole == "Technician") {
@@ -304,7 +304,7 @@ class _TechnicianLoginPageState extends State<TechnicianLoginPage> {
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const SchoolComputerTrackingApp()),
+          MaterialPageRoute(builder: (_) => const StartHomeApp()),
           (Route<dynamic> route) => false, // This removes all previous routes
         );
       } else {
