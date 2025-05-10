@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'welcome_page.dart';
+import 'filter_settings.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -185,11 +186,32 @@ class _SettingsPageState extends State<SettingsPage> {
                   ]),
                   const SizedBox(height: 16),
                   _buildSettingsCard([
-                    _buildListTile(Icons.help_outline, "FAQ", onTap: () {}),
+                    _buildListTile(
+                      Icons.help_outline,
+                      "FAQ",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => const FilterSettingsPage(mode: 'faq'),
+                          ),
+                        );
+                      },
+                    ),
                     _buildListTile(
                       Icons.mail_outline,
                       "Contact Us",
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) =>
+                                    const FilterSettingsPage(mode: 'contact'),
+                          ),
+                        );
+                      },
                     ),
                   ]),
                   const SizedBox(height: 16),
