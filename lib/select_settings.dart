@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-class FilterSettingsPage extends StatelessWidget {
+class SelectSettingsPage extends StatelessWidget {
   final String mode;
 
-  const FilterSettingsPage({super.key, required this.mode});
+  const SelectSettingsPage({super.key, required this.mode});
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +193,11 @@ class FilterSettingsPage extends StatelessWidget {
                 ),
                 child: RichText(
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
                     children: (item['answerSpans'] as List<TextSpan>),
                   ),
                 ),
