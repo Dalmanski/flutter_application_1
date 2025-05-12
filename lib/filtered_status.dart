@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -158,7 +159,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                       children: [
                         RadioListTile<String>(
                           title: const Text('Available'),
-                          value: 'Available',
+                          value: 'available',
                           groupValue: selectedStatus,
                           onChanged: (value) {
                             if (value != null) {
@@ -172,7 +173,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                         ),
                         RadioListTile<String>(
                           title: const Text('Unresolved'),
-                          value: 'Unresolved',
+                          value: 'unresolved',
                           groupValue: selectedStatus,
                           onChanged: (value) {
                             if (value != null) {
@@ -197,9 +198,25 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
                             .collection('PCs')
                             .doc(pcId);
 
-                        await pcRef.update({
-                          'status': selectedStatus.toLowerCase(),
-                        });
+                        await pcRef.update({'status': selectedStatus});
+
+                        final message =
+                            selectedStatus == 'available'
+                                ? '$pcName maintenance is finished'
+                                : '$pcName is marked "unresolved"';
+
+                        final now = DateTime.now();
+                        final dateIso = DateFormat('yyyy-MM-dd').format(now);
+                        final announcementData = {
+                          'message': message,
+                          'timestamp': now.toIso8601String(),
+                          'status': selectedStatus,
+                          'date': dateIso,
+                        };
+
+                        await FirebaseFirestore.instance
+                            .collection('global announce')
+                            .add(announcementData);
 
                         if (!mounted) return;
                         Navigator.pop(context);

@@ -8,6 +8,7 @@ import 'register_pc.dart';
 import 'settings.dart';
 import 'welcome_page.dart';
 import 'available_pc.dart';
+import 'announcements.dart';
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -72,6 +73,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
   bool _isMenuOpen = false;
   String? _role;
+  bool _showNotification = true;
 
   void toggleMenu() {
     setState(() => _isMenuOpen = !_isMenuOpen);
@@ -90,9 +92,10 @@ class _MainScaffoldState extends State<MainScaffold> {
     SettingsPage(),
   ];
 
-  Future<String?> _fetchUserRole() async {
+  Future<void> _fetchSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final accountId = prefs.getString('account_id');
+    _showNotification = prefs.getBool('show_notifications') ?? true;
 
     if (accountId != null && accountId.isNotEmpty) {
       final doc =
@@ -101,139 +104,145 @@ class _MainScaffoldState extends State<MainScaffold> {
               .doc(accountId)
               .get();
       final data = doc.data();
-      return data?['role'];
+      _role = data?['role'];
     }
-    return null;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSettings();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _fetchUserRole(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    if (_role == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        _role = snapshot.data;
-
-        return Scaffold(
-          body: Stack(
-            children: [
-              Scaffold(
-                appBar: AppBar(
-                  backgroundColor: const Color(0xFF6A48D7),
-                  leading:
-                      _role == 'technician'
-                          ? IconTheme(
-                            data: const IconThemeData(color: Colors.white),
-                            child: IconButton(
-                              onPressed: toggleMenu,
-                              icon: const Icon(Icons.menu),
-                            ),
-                          )
-                          : null,
-                  actions: [
-                    IconTheme(
-                      data: const IconThemeData(color: Colors.white),
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.notifications_none),
-                      ),
-                    ),
-                  ],
-                  title: const Text(
-                    'CompStat',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 22,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                body: _pages[_currentIndex],
-                bottomNavigationBar: Container(
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      top: BorderSide(color: Colors.grey, width: 0.5),
-                    ),
-                  ),
-                  child: BottomNavigationBar(
-                    currentIndex: _currentIndex,
-                    selectedItemColor: const Color(0xFF6A48D7),
-                    onTap: switchToPage,
-                    backgroundColor: Colors.white,
-                    items: [
-                      BottomNavigationBarItem(
-                        icon: Icon(
-                          Icons.home,
-                          size: _currentIndex == 0 ? 30 : 24,
-                          color:
-                              _currentIndex == 0
-                                  ? const Color(0xFF6A48D7)
-                                  : Colors.grey,
+    return Scaffold(
+      body: Stack(
+        children: [
+          Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF6A48D7),
+              leading:
+                  _role == 'technician'
+                      ? IconTheme(
+                        data: const IconThemeData(color: Colors.white),
+                        child: IconButton(
+                          onPressed: toggleMenu,
+                          icon: const Icon(Icons.menu),
                         ),
-                        label: 'Home',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: _currentIndex == 1 ? 56 : 48,
-                          height: _currentIndex == 1 ? 56 : 48,
-                          decoration: BoxDecoration(
-                            color:
-                                _currentIndex == 1
-                                    ? const Color(0xFF6A48D7)
-                                    : Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF6A48D7),
-                              width: 2,
-                            ),
+                      )
+                      : null,
+              actions: [
+                if (_showNotification)
+                  IconTheme(
+                    data: const IconThemeData(color: Colors.white),
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AnnouncementsPage(),
                           ),
-                          child: Icon(
-                            Icons.qr_code,
-                            color:
-                                _currentIndex == 1
-                                    ? Colors.white
-                                    : const Color(0xFF6A48D7),
-                            size: _currentIndex == 1 ? 30 : 24,
-                          ),
-                        ),
-                        label: 'QR Code',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(
-                          Icons.settings,
-                          size: _currentIndex == 2 ? 30 : 24,
-                          color:
-                              _currentIndex == 2
-                                  ? const Color(0xFF6A48D7)
-                                  : Colors.grey,
-                        ),
-                        label: 'Settings',
-                      ),
-                    ],
+                        );
+                      },
+                      icon: const Icon(Icons.notifications_none),
+                    ),
                   ),
+              ],
+              title: const Text(
+                'CompStat',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 22,
+                  color: Colors.white,
                 ),
               ),
-
-              // Show Sidebar only for technician
-              if (_role == 'technician')
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  top: 75,
-                  bottom: 550,
-                  left: _isMenuOpen ? 0 : -250,
-                  child: CustomSidebarMenu(
-                    onClose: toggleMenu,
-                    onSelect: (index) => switchToPage(index),
+            ),
+            body: _pages[_currentIndex],
+            bottomNavigationBar: Container(
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
+              ),
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                selectedItemColor: const Color(0xFF6A48D7),
+                onTap: switchToPage,
+                backgroundColor: Colors.white,
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Icon(
+                      Icons.home,
+                      size: _currentIndex == 0 ? 30 : 24,
+                      color:
+                          _currentIndex == 0
+                              ? const Color(0xFF6A48D7)
+                              : Colors.grey,
+                    ),
+                    label: 'Home',
                   ),
-                ),
-            ],
+                  BottomNavigationBarItem(
+                    icon: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: _currentIndex == 1 ? 56 : 48,
+                      height: _currentIndex == 1 ? 56 : 48,
+                      decoration: BoxDecoration(
+                        color:
+                            _currentIndex == 1
+                                ? const Color(0xFF6A48D7)
+                                : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF6A48D7),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.qr_code,
+                        color:
+                            _currentIndex == 1
+                                ? Colors.white
+                                : const Color(0xFF6A48D7),
+                        size: _currentIndex == 1 ? 30 : 24,
+                      ),
+                    ),
+                    label: 'QR Code',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(
+                      Icons.settings,
+                      size: _currentIndex == 2 ? 30 : 24,
+                      color:
+                          _currentIndex == 2
+                              ? const Color(0xFF6A48D7)
+                              : Colors.grey,
+                    ),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
+            ),
           ),
-        );
-      },
+          if (_role == 'technician')
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              top: 75,
+              bottom: 550,
+              left: _isMenuOpen ? 0 : -250,
+              child: CustomSidebarMenu(
+                onClose: toggleMenu,
+                onSelect: (index) => switchToPage(index),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

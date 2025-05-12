@@ -1,4 +1,3 @@
-// ✅ Full corrected version below
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -366,9 +365,11 @@ class _QRScanPageState extends State<QRScanPage> {
   ) async {
     final now = DateTime.now();
     final timeFormatted = DateFormat('hh:mm a').format(now);
-    final dateFormatted = DateFormat('MMMM d, yyyy').format(DateTime.now());
+    final dateFormatted = DateFormat('MMMM d, yyyy').format(now);
+    final dateIso = DateFormat('yyyy-MM-dd').format(now);
 
     try {
+      // Update PC status
       await FirebaseFirestore.instance
           .collection('comlab rooms')
           .doc(comlabDocId)
@@ -380,6 +381,19 @@ class _QRScanPageState extends State<QRScanPage> {
             'time_reported': timeFormatted,
             'date_reported': dateFormatted,
           });
+
+      final announcementData = {
+        'status': 'maintenance',
+        'message': '$pcName is under maintenance.',
+        'timestamp': now.toIso8601String(),
+        'date': dateIso,
+      };
+
+      final announceRef = FirebaseFirestore.instance.collection(
+        'global announce',
+      );
+      final globalDocId = announceRef.doc().id;
+      await announceRef.doc(globalDocId).set(announcementData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

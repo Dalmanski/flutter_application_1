@@ -177,10 +177,7 @@ class _WelcomePageState extends State<WelcomePage> {
             const SizedBox(height: 15),
             Text(
               role,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ), // Increased font size
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -216,11 +213,7 @@ class StudentConfirmationDialog extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(
-                    context,
-                  ).pop(true); // This is to prevent click back button
-                },
+                onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -249,7 +242,9 @@ class StudentConfirmationDialog extends StatelessWidget {
   }
 }
 
-// -------------------- Technician Login Page --------------------
+// --------------------------------------------
+//             TechnicianLoginPage
+// --------------------------------------------
 
 class TechnicianLoginPage extends StatefulWidget {
   const TechnicianLoginPage({super.key});
@@ -305,7 +300,7 @@ class _TechnicianLoginPageState extends State<TechnicianLoginPage> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const StartHomeApp()),
-          (Route<dynamic> route) => false, // This removes all previous routes
+          (route) => false,
         );
       } else {
         ScaffoldMessenger.of(
