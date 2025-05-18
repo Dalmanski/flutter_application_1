@@ -8,14 +8,15 @@ import 'package:logger/logger.dart';
 final logger = Logger();
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  final Function onSettingsUpdated;
+
+  const SettingsPage({super.key, required this.onSettingsUpdated});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool isDarkMode = false;
   bool isNotification = false;
   late Future<String> _userRoleFuture;
 
@@ -23,6 +24,15 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _userRoleFuture = _fetchUserRole();
+    _loadPreferences();
+    _logSharedPreferencesData();
+  }
+
+  void _loadPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isNotification = prefs.getBool('notification_enabled') ?? false;
+    });
   }
 
   void logout() async {
@@ -30,19 +40,25 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setString('account_id', '');
   }
 
+  void _logSharedPreferencesData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    for (String key in prefs.getKeys()) {
+      final value = prefs.get(key);
+      logger.f("$key: $value");
+    }
+  }
+
   Future<String> _fetchUserRole() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? accountId = prefs.getString('account_id');
-      logger.d("Account ID: $accountId");
 
       if (accountId == null) return "Unknown";
 
-      final doc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(accountId)
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(accountId)
+          .get();
 
       if (doc.exists) {
         final data = doc.data();
@@ -54,6 +70,45 @@ class _SettingsPageState extends State<SettingsPage> {
       logger.e("Error fetching user role: $e");
       return "Unknown";
     }
+  }
+
+  void showLogoutConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 10),
+            Text("Confirm Logout"),
+          ],
+        ),
+        content: const Text("Are you sure you want to log-out?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop(); // close dialog
+              logout();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const WelcomePage()),
+                (route) => false,
+              );
+            },
+            child: const Text("Yes, Log Out"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -143,16 +198,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         },
                       ),
                     ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white,
-                      size: 16,
-                    ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
             // Settings Cards
@@ -165,24 +214,16 @@ class _SettingsPageState extends State<SettingsPage> {
                       Icons.notifications_active,
                       "Notification",
                       isNotification,
-                      (val) {
+                      (val) async {
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
                         setState(() {
                           isNotification = val;
                         });
+                        await prefs.setBool('notification_enabled', val);
+                        widget.onSettingsUpdated();
                       },
                     ),
-                    _buildListTile(
-                      Icons.display_settings,
-                      "Display",
-                      onTap: () {},
-                    ),
-                    _buildSwitchTile(Icons.dark_mode, "Dark Mode", isDarkMode, (
-                      val,
-                    ) {
-                      setState(() {
-                        isDarkMode = val;
-                      });
-                    }),
                   ]),
                   const SizedBox(height: 16),
                   _buildSettingsCard([
@@ -193,8 +234,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (_) => const SelectSettingsPage(mode: 'faq'),
+                            builder: (_) =>
+                                const SelectSettingsPage(mode: 'faq'),
                           ),
                         );
                       },
@@ -206,9 +247,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (_) =>
-                                    const SelectSettingsPage(mode: 'contact'),
+                            builder: (_) =>
+                                const SelectSettingsPage(mode: 'contact'),
                           ),
                         );
                       },
@@ -219,16 +259,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     _buildListTile(
                       Icons.logout,
                       "Log Out",
-                      onTap: () {
-                        logout();
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const WelcomePage(),
-                          ),
-                          (route) => false,
-                        );
-                      },
+                      onTap: showLogoutConfirmationDialog,
                     ),
                   ]),
                   const SizedBox(height: 20),

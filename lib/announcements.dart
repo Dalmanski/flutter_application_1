@@ -198,7 +198,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                     "MMMM, dd",
                                   ).format(DateTime.parse(entry.key)),
                                   style: const TextStyle(
-                                    fontSize: 20,
+                                    fontSize: 25,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black87,
                                   ),
@@ -224,7 +224,7 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                                   horizontal: 12,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[100],
+                                  color: Colors.grey[300],
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(

@@ -75,6 +75,20 @@ class _MainScaffoldState extends State<MainScaffold> {
   String? _role;
   bool _showNotification = true;
 
+  void _onSettingsUpdated() {
+    setState(() {
+      _fetchSettings();
+    });
+  }
+
+  List<Widget> get _pages {
+    return [
+      const HomeContent(),
+      const QRScanPage(),
+      SettingsPage(onSettingsUpdated: _onSettingsUpdated),
+    ];
+  }
+
   void toggleMenu() {
     setState(() => _isMenuOpen = !_isMenuOpen);
   }
@@ -86,16 +100,10 @@ class _MainScaffoldState extends State<MainScaffold> {
     });
   }
 
-  final List<Widget> _pages = const [
-    HomeContent(),
-    QRScanPage(),
-    SettingsPage(),
-  ];
-
   Future<void> _fetchSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final accountId = prefs.getString('account_id');
-    _showNotification = prefs.getBool('show_notifications') ?? true;
+    _showNotification = prefs.getBool('notification_enabled') ?? true;
 
     if (accountId != null && accountId.isNotEmpty) {
       final doc =
