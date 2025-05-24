@@ -86,7 +86,7 @@ class _HomeContentState extends State<HomeContent> {
                     children: [
                       const SizedBox(height: 8),
                       Text(
-                        _capitalize(lab['name']),
+                        lab['name'].toUpperCase(),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -299,12 +299,6 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  String _capitalize(String name) {
-    return name.isEmpty
-        ? name
-        : name[0].toUpperCase() + name.substring(1).toLowerCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -354,7 +348,7 @@ class _HomeContentState extends State<HomeContent> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _capitalize(lab['name']),
+                                    lab['name'].toUpperCase(),
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,

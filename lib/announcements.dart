@@ -51,7 +51,30 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   }
 
   Future<void> _clearAllNotifications() async {
-    if (accountId == null) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Confirm"),
+            content: const Text(
+              "Are you sure you want to clear all announcements?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Yes", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm != true || accountId == null) return;
+
     final collection = FirebaseFirestore.instance.collection('global announce');
     final snapshots = await collection.get();
     for (var doc in snapshots.docs) {
@@ -60,11 +83,34 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   }
 
   Future<void> _deleteNotification(String docId) async {
-    if (accountId == null) return;
-    await FirebaseFirestore.instance
-        .collection('global announce')
-        .doc(docId)
-        .delete();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Confirm"),
+            content: const Text(
+              "Are you sure you want to delete this announcement?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Yes", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true && accountId != null) {
+      await FirebaseFirestore.instance
+          .collection('global announce')
+          .doc(docId)
+          .delete();
+    }
   }
 
   @override

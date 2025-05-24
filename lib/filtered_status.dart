@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:logger/logger.dart';
-
-final logger = Logger();
 
 class FilteredStatusPage extends StatefulWidget {
   final String status;
@@ -70,7 +67,6 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
             .get();
 
     if (querySnapshot.docs.isEmpty) {
-      logger.e("No matching comlab found for name ${widget.labName}");
       setState(() {
         isLoading = false;
       });
@@ -91,7 +87,7 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
       if (status.toLowerCase() == widget.status.toLowerCase()) {
         tempList.add({
           'pcId': pc.id,
-          'pcName': data['pc_name'] ?? pc.id, // Use pc_name if available
+          'pcName': data['pc_name'] ?? pc.id,
           'isExpanded': false,
           'status': status,
           'date': data['date_reported'] ?? '',
@@ -202,8 +198,8 @@ class _FilteredStatusPageState extends State<FilteredStatusPage> {
 
                         final message =
                             selectedStatus == 'available'
-                                ? '$pcName maintenance is finished'
-                                : '$pcName is marked "unresolved"';
+                                ? 'Maintenance for $pcName in ${widget.labName} is finished'
+                                : '$pcName in ${widget.labName} is marked "unresolved"';
 
                         final now = DateTime.now();
                         final dateIso = DateFormat('yyyy-MM-dd').format(now);

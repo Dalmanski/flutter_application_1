@@ -384,7 +384,7 @@ class _QRScanPageState extends State<QRScanPage> {
 
       final announcementData = {
         'status': 'maintenance',
-        'message': '$pcName is under maintenance.',
+        'message': '$pcName in $comlabName is under maintenance',
         'timestamp': now.toIso8601String(),
         'date': dateIso,
       };
