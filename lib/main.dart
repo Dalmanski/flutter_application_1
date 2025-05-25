@@ -76,9 +76,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   bool _showNotification = true;
 
   void _onSettingsUpdated() {
-    setState(() {
-      _fetchSettings();
-    });
+    _fetchSettings();
   }
 
   List<Widget> get _pages {
@@ -103,7 +101,9 @@ class _MainScaffoldState extends State<MainScaffold> {
   Future<void> _fetchSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final accountId = prefs.getString('account_id');
-    _showNotification = prefs.getBool('notification_enabled') ?? true;
+    final showNotification = prefs.getBool('notification_enabled') ?? true;
+
+    String? role;
 
     if (accountId != null && accountId.isNotEmpty) {
       final doc =
@@ -112,11 +112,14 @@ class _MainScaffoldState extends State<MainScaffold> {
               .doc(accountId)
               .get();
       final data = doc.data();
-      _role = data?['role'];
+      role = data?['role'];
     }
 
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _showNotification = showNotification;
+        _role = role;
+      });
     }
   }
 
@@ -129,127 +132,119 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     if (_role == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF6A48D7),
+        leading:
+            _role == 'technician'
+                ? IconTheme(
+                  data: const IconThemeData(color: Colors.white),
+                  child: IconButton(
+                    onPressed: toggleMenu,
+                    icon: const Icon(Icons.menu),
+                  ),
+                )
+                : null,
+        actions: [
+          if (_showNotification)
+            IconTheme(
+              data: const IconThemeData(color: Colors.white),
+              child: IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AnnouncementsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.notifications_none),
+              ),
+            ),
+        ],
+        title: const Text(
+          'CompStat',
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 22,
+            color: Colors.white,
+          ),
+        ),
+      ),
       body: Stack(
         children: [
-          Scaffold(
-            appBar: AppBar(
-              backgroundColor: const Color(0xFF6A48D7),
-              leading:
-                  _role == 'technician'
-                      ? IconTheme(
-                        data: const IconThemeData(color: Colors.white),
-                        child: IconButton(
-                          onPressed: toggleMenu,
-                          icon: const Icon(Icons.menu),
-                        ),
-                      )
-                      : null,
-              actions: [
-                if (_showNotification)
-                  IconTheme(
-                    data: const IconThemeData(color: Colors.white),
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AnnouncementsPage(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.notifications_none),
-                    ),
-                  ),
-              ],
-              title: const Text(
-                'CompStat',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 22,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            body: _pages[_currentIndex],
-            bottomNavigationBar: Container(
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
-              ),
-              child: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                selectedItemColor: const Color(0xFF6A48D7),
-                onTap: switchToPage,
-                backgroundColor: Colors.white,
-                items: [
-                  BottomNavigationBarItem(
-                    icon: Icon(
-                      Icons.home,
-                      size: _currentIndex == 0 ? 30 : 24,
-                      color:
-                          _currentIndex == 0
-                              ? const Color(0xFF6A48D7)
-                              : Colors.grey,
-                    ),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: _currentIndex == 1 ? 56 : 48,
-                      height: _currentIndex == 1 ? 56 : 48,
-                      decoration: BoxDecoration(
-                        color:
-                            _currentIndex == 1
-                                ? const Color(0xFF6A48D7)
-                                : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF6A48D7),
-                          width: 2,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.qr_code,
-                        color:
-                            _currentIndex == 1
-                                ? Colors.white
-                                : const Color(0xFF6A48D7),
-                        size: _currentIndex == 1 ? 30 : 24,
-                      ),
-                    ),
-                    label: 'QR Code',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(
-                      Icons.settings,
-                      size: _currentIndex == 2 ? 30 : 24,
-                      color:
-                          _currentIndex == 2
-                              ? const Color(0xFF6A48D7)
-                              : Colors.grey,
-                    ),
-                    label: 'Settings',
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _pages[_currentIndex],
           if (_role == 'technician')
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
-              top: 75,
-              bottom: 550,
-              left: _isMenuOpen ? 0 : -250,
+              top: _isMenuOpen ? 0 : -300,
+              left: 0,
+              right: 200,
+              height: 150,
               child: CustomSidebarMenu(
                 onClose: toggleMenu,
                 onSelect: (index) => switchToPage(index),
               ),
             ),
         ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.grey, width: 0.5)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          selectedItemColor: const Color(0xFF6A48D7),
+          onTap: switchToPage,
+          backgroundColor: Colors.white,
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(
+                Icons.home,
+                size: _currentIndex == 0 ? 30 : 24,
+                color:
+                    _currentIndex == 0 ? const Color(0xFF6A48D7) : Colors.grey,
+              ),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: _currentIndex == 1 ? 56 : 48,
+                height: _currentIndex == 1 ? 56 : 48,
+                decoration: BoxDecoration(
+                  color:
+                      _currentIndex == 1
+                          ? const Color(0xFF6A48D7)
+                          : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF6A48D7), width: 2),
+                ),
+                child: Icon(
+                  Icons.qr_code,
+                  color:
+                      _currentIndex == 1
+                          ? Colors.white
+                          : const Color(0xFF6A48D7),
+                  size: _currentIndex == 1 ? 30 : 24,
+                ),
+              ),
+              label: 'QR Code',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(
+                Icons.settings,
+                size: _currentIndex == 2 ? 30 : 24,
+                color:
+                    _currentIndex == 2 ? const Color(0xFF6A48D7) : Colors.grey,
+              ),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -268,23 +263,18 @@ class CustomSidebarMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
+      elevation: 16,
       child: Container(
         width: 250,
-        decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 24, 21, 37),
-          borderRadius: BorderRadius.only(bottomRight: Radius.circular(30)),
-        ),
+        decoration: const BoxDecoration(color: Color.fromARGB(255, 24, 21, 37)),
         padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 1),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 15,
-                crossAxisSpacing: 15,
-                shrinkWrap: true,
+              child: ListView(
+                padding: const EdgeInsets.only(top: 10),
                 children: [
                   _gridMenuButton(Icons.add, "Register", () {
                     Navigator.push(
@@ -292,6 +282,7 @@ class CustomSidebarMenu extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => const CreatePCPage()),
                     );
                   }),
+                  const SizedBox(height: 15),
                   _gridMenuButton(Icons.computer, "All PC's", () {
                     Navigator.push(
                       context,
@@ -317,16 +308,15 @@ class CustomSidebarMenu extends StatelessWidget {
           color: const Color.fromARGB(255, 75, 66, 89),
           borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 8),
+            const SizedBox(width: 12),
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
           ],
         ),
