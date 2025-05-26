@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 class CreatePCPage extends StatefulWidget {
   const CreatePCPage({super.key});
@@ -19,7 +18,7 @@ class _CreatePCPageState extends State<CreatePCPage> {
   List<Map<String, dynamic>> comlabList = [];
 
   final String staticImageUrl =
-      "https://www.leetdesk.com/_next/image?url=https%3A%2F%2Fimages.prismic.io%2Fleetdesk%2F37888785-fa43-4243-ae48-2a9ca2f35ff0_atmosphaerisches-gamer-zimmer.jpg%3Fauto%3Dcompress%2Cformat&w=3840&q=75";
+      "https://cdn.oneesports.gg/cdn-data/2024/08/HonorofKings_HOKInvitationalMidseason_grandfinals_LGDGaming_KPLDreamTeam-1536x864.jpg";
 
   @override
   void initState() {
@@ -65,7 +64,6 @@ class _CreatePCPageState extends State<CreatePCPage> {
           .doc(comlabDocID)
           .collection('PCs');
 
-      // Generate auto-incremented doc ID regardless of input
       final snapshot = await pcsCollection.get();
       int nextIndex = snapshot.docs.length + 1;
       String newDocID = 'PC $nextIndex';
@@ -108,7 +106,8 @@ class _CreatePCPageState extends State<CreatePCPage> {
 
   Future<void> _showAddComlabModal() async {
     final TextEditingController nameController = TextEditingController();
-    final scaffoldContext = context; // Save this context for SnackBars
+    final TextEditingController imageUrlController = TextEditingController();
+    final scaffoldContext = context;
     bool modalLoading = false;
 
     await showDialog(
@@ -135,12 +134,17 @@ class _CreatePCPageState extends State<CreatePCPage> {
                         .get();
                 String nextDocID = 'comlab ${snapshot.docs.length + 1}';
 
+                String imageUrl =
+                    imageUrlController.text.trim().isEmpty
+                        ? staticImageUrl
+                        : imageUrlController.text.trim();
+
                 await FirebaseFirestore.instance
                     .collection('comlab rooms')
                     .doc(nextDocID)
                     .set({
                       'comlab_name': nameController.text.trim(),
-                      'image': staticImageUrl,
+                      'image': imageUrl,
                       'created_at': FieldValue.serverTimestamp(),
                     });
 
@@ -168,9 +172,7 @@ class _CreatePCPageState extends State<CreatePCPage> {
                     setStateDialog(() {
                       modalLoading = false;
                     });
-                  } catch (_) {
-                    // Dialog already popped — do nothing
-                  }
+                  } catch (_) {}
                 }
               }
             }
@@ -185,9 +187,28 @@ class _CreatePCPageState extends State<CreatePCPage> {
                     decoration: const InputDecoration(labelText: 'Comlab Name'),
                   ),
                   const SizedBox(height: 10),
-                  const Text('Static image will be used.'),
+                  TextField(
+                    controller: imageUrlController,
+                    onChanged: (_) => setStateDialog(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Image URL (optional)',
+                      hintText: 'Leave blank to use default image',
+                    ),
+                  ),
                   const SizedBox(height: 10),
-                  Image.network(staticImageUrl, height: 100),
+                  const Text('Image Preview:'),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrlController.text.trim().isEmpty
+                          ? staticImageUrl
+                          : imageUrlController.text.trim(),
+                      height: 100,
+                      errorBuilder:
+                          (_, __, ___) => const Text('Invalid image link'),
+                    ),
+                  ),
                 ],
               ),
               actions: [
@@ -313,21 +334,6 @@ class _CreatePCPageState extends State<CreatePCPage> {
                         : const Text('Submit'),
               ),
               const SizedBox(height: 30),
-              if (generatedLink != null) ...[
-                const Text(
-                  'Generated QR Code:',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: QrImageView(
-                    data: generatedLink!,
-                    version: QrVersions.auto,
-                    size: 200.0,
-                  ),
-                ),
-              ],
             ],
           ),
         ),

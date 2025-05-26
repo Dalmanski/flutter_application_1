@@ -240,7 +240,7 @@ class SelectSettingsPage extends StatelessWidget {
             SizedBox(height: 10),
             Text("Email us at:", style: TextStyle(fontSize: 16)),
             Text(
-              "support@schoolpcapp.com",
+              "info-danao@ctu.edu.ph",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
